@@ -8,3 +8,8 @@ playwright-report/
 Thumbs.db
 src/generated/
 .tmp/
+
+# Banco local de desenvolvimento e variáveis secretas
+.data/
+.env
+.env.local

@@ -1,13 +1,13 @@
 /**
  * Universal Prensados - Service Worker
- * Versão: 1.2.0
+ * Versão: 1.3.0
  * Estratégia: Cache First para assets estáticos, Network First para dados dinâmicos
  */
 
-const CACHE_NAME = 'universal-prensados-v1.2.0';
-const STATIC_CACHE = 'universal-prensados-static-v1.2.0';
-const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.2.0';
-const IMAGE_CACHE = 'universal-prensados-images-v1.2.0';
+const CACHE_NAME = 'universal-prensados-v1.3.0';
+const STATIC_CACHE = 'universal-prensados-static-v1.3.0';
+const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.3.0';
+const IMAGE_CACHE = 'universal-prensados-images-v1.3.0';
 
 // Assets essenciais para funcionamento offline.
 // JS/CSS gerados pelo Vite têm hash no nome e entram no cache na primeira visita.
@@ -77,6 +77,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // API (pedidos, painel) e métodos que não sejam GET nunca passam pelo cache
+  if (url.pathname.startsWith('/api/') || request.method !== 'GET') {
+    return;
+  }
+
+  // Painel da equipe sempre direto da rede
+  if (url.pathname.startsWith('/painel')) {
+    return;
+  }
+
   // Ignorar requisições de extensões do navegador
   if (url.origin === 'chrome-extension' || url.origin === 'moz-extension') {
     return;

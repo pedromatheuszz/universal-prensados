@@ -1,5 +1,10 @@
 // Registro do Service Worker (antes inline no index.html, o que a CSP bloqueava)
-if ('serviceWorker' in navigator) {
+// Só no site publicado: em desenvolvimento o cache do SW serviria código desatualizado
+if ('serviceWorker' in navigator && !import.meta.env.PROD) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+}
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {

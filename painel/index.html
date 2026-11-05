@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel da Cozinha | Universal Prensados</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#070c1c">
+  <script type="module" src="../theme-init.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700;800;900&display=swap">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../src/pages.css">
+  <link rel="icon" href="/images/icon-96.png" type="image/png">
+</head>
+<body class="page-panel">
+  <!-- Login -->
+  <main class="login hidden" id="login-view">
+    <form class="login__card" id="login-form" novalidate>
+      <img src="/images/logo-96.webp" alt="" width="64" height="64">
+      <h1>Painel da Cozinha</h1>
+      <p class="tracking__muted">Entre com o usuário da equipe.</p>
+      <label class="field">
+        <span>Usuário</span>
+        <input type="text" id="login-user" autocomplete="username" required autocapitalize="none" spellcheck="false">
+      </label>
+      <label class="field">
+        <span>Senha</span>
+        <input type="password" id="login-pass" autocomplete="current-password" required>
+      </label>
+      <p class="login__error hidden" id="login-error" role="alert"></p>
+      <button type="submit" class="btn btn--primary btn--full" id="login-submit">Entrar</button>
+    </form>
+  </main>
+
+  <!-- Painel -->
+  <div class="panel hidden" id="panel-view">
+    <header class="panel__bar">
+      <div class="panel__brand">
+        <img src="/images/logo-96.webp" alt="" width="36" height="36">
+        <strong>Painel</strong>
+      </div>
+      <nav class="panel__tabs" role="tablist" aria-label="Seções do painel">
+        <button type="button" class="panel__tab is-active" role="tab" aria-selected="true" data-tab="orders">Pedidos <span class="badge hidden" id="new-count">0</span></button>
+        <button type="button" class="panel__tab" role="tab" aria-selected="false" data-tab="reports">Relatórios</button>
+      </nav>
+      <div class="panel__tools">
+        <span class="panel__status" id="sync-status" title="Status da conexão">●</span>
+        <button type="button" class="btn btn--glass btn--sm" id="sound-toggle" aria-pressed="false">🔕 Ativar som</button>
+        <span class="panel__user" id="panel-user"></span>
+        <button type="button" class="btn btn--outline btn--sm" id="logout-btn">Sair</button>
+      </div>
+    </header>
+
+    <!-- Quadro de pedidos -->
+    <section class="board" id="tab-orders" role="tabpanel">
+      <div class="board__col" data-col="novo">
+        <h2>Novos <span class="board__count" data-count="novo">0</span></h2>
+        <div class="board__list" data-list="novo"></div>
+      </div>
+      <div class="board__col" data-col="preparando">
+        <h2>Em preparo <span class="board__count" data-count="preparando">0</span></h2>
+        <div class="board__list" data-list="preparando"></div>
+      </div>
+      <div class="board__col" data-col="expedicao">
+        <h2>Prontos / em entrega <span class="board__count" data-count="expedicao">0</span></h2>
+        <div class="board__list" data-list="expedicao"></div>
+      </div>
+      <div class="board__col board__col--done" data-col="finalizados">
+        <h2>Finalizados (12h) <span class="board__count" data-count="finalizados">0</span></h2>
+        <div class="board__list" data-list="finalizados"></div>
+      </div>
+    </section>
+
+    <!-- Relatórios -->
+    <section class="reports hidden" id="tab-reports" role="tabpanel">
+      <div class="reports__filters" role="group" aria-label="Período">
+        <button type="button" class="chip is-active" data-range="0">Hoje</button>
+        <button type="button" class="chip" data-range="6">7 dias</button>
+        <button type="button" class="chip" data-range="29">30 dias</button>
+        <button type="button" class="chip" data-range="89">90 dias</button>
+        <label class="reports__custom">De <input type="date" id="range-from"></label>
+        <label class="reports__custom">até <input type="date" id="range-to"></label>
+      </div>
+
+      <div class="reports__body" id="reports-body">
+        <div class="stats">
+          <div class="stat stat--hero"><span class="stat__label">Faturamento</span><strong class="stat__value" id="r-revenue">R$ 0,00</strong></div>
+          <div class="stat"><span class="stat__label">Pedidos</span><strong class="stat__value" id="r-orders">0</strong></div>
+          <div class="stat"><span class="stat__label">Ticket médio</span><strong class="stat__value" id="r-avg">R$ 0,00</strong></div>
+          <div class="stat"><span class="stat__label">Cancelados</span><strong class="stat__value" id="r-cancelled">0</strong></div>
+        </div>
+
+        <div class="chart-card">
+          <h3 id="r-timeline-title">Faturamento por dia</h3>
+          <div class="chart" id="r-timeline"></div>
+          <details class="chart-table"><summary>Ver tabela</summary><div id="r-timeline-table"></div></details>
+        </div>
+
+        <div class="reports__grid">
+          <div class="chart-card">
+            <h3>Mais vendidos</h3>
+            <div class="barlist" id="r-products"></div>
+          </div>
+          <div class="chart-card">
+            <h3>Pedidos por horário</h3>
+            <div class="chart" id="r-hours"></div>
+          </div>
+          <div class="chart-card">
+            <h3>Faturamento por pagamento</h3>
+            <div class="barlist" id="r-payment"></div>
+          </div>
+          <div class="chart-card">
+            <h3>Pedidos por bairro</h3>
+            <div class="barlist" id="r-district"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="chart-tooltip hidden" id="chart-tooltip" role="tooltip"></div>
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script type="module" src="../src/painel.js"></script>
+</body>
+</html>

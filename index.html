@@ -518,60 +518,16 @@
         <!-- Opcionais / Adicionais -->
         <div class="custom-section" id="section-extras">
           <h4>🔥 Deseja Adicionais? (Opcional)</h4>
-          <div class="options-group">
-            <label class="custom-option-card">
-              <input type="checkbox" name="extra" value="bacon" data-name="Bacon Crocante" data-price="3.50">
-              <span class="opt-name">+ Bacon Crocante Extra</span>
-              <span class="opt-price">+ R$ 3,50</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="extra" value="queijo" data-name="Queijo Duplo" data-price="3.00">
-              <span class="opt-name">+ Queijo Mussarela Duplo</span>
-              <span class="opt-price">+ R$ 3,00</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="extra" value="catupiry" data-name="Catupiry" data-price="3.50">
-              <span class="opt-name">+ Catupiry Original</span>
-              <span class="opt-price">+ R$ 3,50</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="extra" value="salsicha" data-name="Salsicha Extra" data-price="2.50">
-              <span class="opt-name">+ Salsicha Extra</span>
-              <span class="opt-price">+ R$ 2,50</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="extra" value="batata" data-name="Batata Palha Extra" data-price="2.00">
-              <span class="opt-name">+ Batata Palha Extra</span>
-              <span class="opt-price">+ R$ 2,00</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="extra" value="ovo" data-name="Ovo na Chapa" data-price="2.50">
-              <span class="opt-name">+ Ovo na Chapa</span>
-              <span class="opt-price">+ R$ 2,50</span>
-            </label>
+          <div class="options-group" id="extras-options">
+            <!-- Montado por script.js a partir de src/menu-options.js -->
           </div>
         </div>
 
         <!-- Remoções de ingredientes -->
         <div class="custom-section" id="section-removals">
           <h4>🚫 Retirar Algum Ingrediente? (Sem custo)</h4>
-          <div class="options-group options-group--compact">
-            <label class="custom-option-card">
-              <input type="checkbox" name="removal" value="Sem milho">
-              <span class="opt-name">Sem milho</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="removal" value="Sem batata palha">
-              <span class="opt-name">Sem batata palha</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="removal" value="Sem maionese">
-              <span class="opt-name">Sem maionese</span>
-            </label>
-            <label class="custom-option-card">
-              <input type="checkbox" name="removal" value="Sem catchup">
-              <span class="opt-name">Sem catchup</span>
-            </label>
+          <div class="options-group options-group--compact" id="removal-options">
+            <!-- Montado por script.js a partir de src/menu-options.js -->
           </div>
         </div>
 
@@ -769,7 +725,7 @@
       <div class="success-modal__icon">🎉</div>
       <h3 class="success-modal__title">Pedido Enviado com Sucesso!</h3>
       <p class="success-modal__desc">
-        Seu pedido foi registrado no sistema e encaminhado para o WhatsApp oficial da Universal Prensados.
+        <span id="success-order-msg">Seu pedido foi registrado e já apareceu no painel da nossa cozinha. Envie também pelo WhatsApp para confirmar.</span>
       </p>
 
       <div class="order-code-badge">
@@ -782,7 +738,7 @@
           <div class="tracker-dot">✓</div>
           <div class="tracker-label">Pedido Recebido</div>
         </div>
-        <div class="tracker-step active">
+        <div class="tracker-step">
           <div class="tracker-dot">🔥</div>
           <div class="tracker-label">Em Preparo na Chapa</div>
         </div>
@@ -810,6 +766,9 @@
       <div class="success-modal__actions">
         <a href="" id="success-whatsapp-link" target="_blank" rel="noopener" class="btn btn--primary btn--full">
           <span>💬 Abrir Conversa no WhatsApp</span>
+        </a>
+        <a href="" id="success-track-link" class="btn btn--outline btn--full hidden">
+          <span>📍 Acompanhar pedido em tempo real</span>
         </a>
         <button type="button" class="btn btn--outline btn--full" id="success-close-btn">
           <span>Fazer Outro Pedido</span>

@@ -10,6 +10,7 @@
 import { PRODUCTS, PRODUCTS_BY_ID, SETTINGS } from "./src/catalog.js";
 import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag, getStoreStatus } from "./src/utils.js";
 import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from "./src/pricing.js";
+import { EXTRAS, REMOVALS, EXTRAS_BY_NAME } from "./src/menu-options.js";
 import { initAnimations, revealProducts, filterProducts, flyToCart, revealCartItems } from "./src/animations.js";
 import { initAnalytics, trackAddToCart, trackBeginCheckout, trackPurchase, trackApplyCoupon, trackViewItem, trackSearch } from "./analytics.js";
 
@@ -147,6 +148,26 @@ function renderProducts(filterCategory = 'todos') {
 }
 
 // --- 8. CUSTOMIZATION MODAL (Lanche Customizer) ---
+function renderMenuOptions() {
+  const extrasEl = document.getElementById('extras-options');
+  const removalsEl = document.getElementById('removal-options');
+  if (extrasEl) {
+    extrasEl.innerHTML = EXTRAS.map(e => `
+      <label class="custom-option-card">
+        <input type="checkbox" name="extra" value="${escapeHTML(e.id)}" data-name="${escapeHTML(e.name)}" data-price="${e.price}">
+        <span class="opt-name">${escapeHTML(e.label)}</span>
+        <span class="opt-price">+ ${formatBRL(e.price)}</span>
+      </label>`).join('');
+  }
+  if (removalsEl) {
+    removalsEl.innerHTML = REMOVALS.map(r => `
+      <label class="custom-option-card">
+        <input type="checkbox" name="removal" value="${escapeHTML(r)}">
+        <span class="opt-name">${escapeHTML(r)}</span>
+      </label>`).join('');
+  }
+}
+
 function openCustomizerModal(productId) {
   const product = PRODUCTS_BY_ID.get(productId);
   if (!product) return;
@@ -489,7 +510,68 @@ function updateCheckoutSummary() {
   }
 }
 
-function processOrder(e) {
+// Envia o pedido para a API (painel da cozinha). Se a API estiver fora do ar,
+// o pedido segue só pelo WhatsApp como antes — nenhum pedido se perde.
+async function submitOrderToApi(payload) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return { ok: true, data };
+    // 4xx de validação: o cliente precisa corrigir algo
+    if (res.status === 422 || res.status === 429) return { ok: false, userError: data.error || 'Confira os dados do pedido.' };
+    return { ok: false };
+  } catch {
+    return { ok: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function buildWhatsAppMessage({ code, trackingUrl, name, phone, deliveryType, address, items, totals, paymentText, couponCode }) {
+  let msg = `🌭 *NOVO PEDIDO ONLINE - UNIVERSAL PRENSADOS*\n`;
+  msg += `*Pedido:* ${code}\n`;
+  msg += `--------------------------------------\n`;
+  msg += `👤 *Cliente:* ${name}\n`;
+  msg += `📱 *WhatsApp:* ${phone}\n`;
+  msg += `🛵 *Tipo:* ${deliveryType === 'delivery' ? 'Entrega em Casa' : 'Retirada no Balcão (Jarivatuba)'}\n`;
+
+  if (deliveryType === 'delivery') {
+    msg += `📍 *Endereço:* ${address.street}, nº ${address.number}\n`;
+    msg += `📍 *Bairro:* ${address.district} - Joinville/SC\n`;
+    if (address.compl) msg += `🏢 *Compl:* ${address.compl}\n`;
+    if (address.ref) msg += `🔍 *Ref:* ${address.ref}\n`;
+  }
+  msg += `--------------------------------------\n`;
+  msg += `📋 *ITENS DO PEDIDO:*\n\n`;
+
+  items.forEach((item, i) => {
+    msg += `${i + 1}. *${item.qty}x ${item.name}* — ${formatBRL(item.unitPrice * item.qty)}\n`;
+    if (item.extras?.length) msg += `   └ Adicionais: ${item.extras.map(e => e.name).join(', ')}\n`;
+    if (item.removals?.length) msg += `   └ Retirar: ${item.removals.join(', ')}\n`;
+    if (item.notes) msg += `   └ Observação: "${item.notes}"\n`;
+    msg += `\n`;
+  });
+
+  msg += `--------------------------------------\n`;
+  msg += `💵 *Subtotal:* ${formatBRL(totals.subtotal)}\n`;
+  if (totals.discount > 0) msg += `🎉 *Desconto Cupom (${couponCode}):* -${formatBRL(totals.discount)}\n`;
+  if (deliveryType === 'delivery') msg += `🛵 *Taxa de Entrega:* ${totals.deliveryFee === 0 ? 'GRÁTIS' : formatBRL(totals.deliveryFee)}\n`;
+  msg += `💰 *TOTAL A PAGAR: ${formatBRL(totals.total)}*\n`;
+  msg += `💳 *Forma de Pagamento:* ${paymentText}\n`;
+  msg += `--------------------------------------\n`;
+  if (trackingUrl) msg += `📍 Acompanhe: ${trackingUrl}\n`;
+  msg += `Aguardando confirmação do pedido! Muito obrigado!`;
+  return msg;
+}
+
+async function processOrder(e) {
   e.preventDefault();
 
   if (cart.length === 0) {
@@ -499,24 +581,20 @@ function processOrder(e) {
 
   const name = document.getElementById('order-name').value.trim();
   const phone = document.getElementById('order-phone').value.trim();
-  const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value;
+  const deliveryType = document.querySelector('input[name="delivery_type"]:checked').value === 'delivery' ? 'delivery' : 'pickup';
   const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+  const changeFor = paymentMethod === 'dinheiro' ? document.getElementById('order-change').value.trim() : '';
 
-  let district = '';
-  let street = '';
-  let number = '';
-  let compl = '';
-  let ref = '';
-
+  const address = { district: '', street: '', number: '', compl: '', ref: '', cep: '' };
   if (deliveryType === 'delivery') {
-    const districtSelect = document.getElementById('order-district');
-    district = districtSelect.value;
-    street = document.getElementById('order-street').value.trim();
-    number = document.getElementById('order-number').value.trim();
-    compl = document.getElementById('order-compl').value.trim();
-    ref = document.getElementById('order-ref').value.trim();
+    address.district = document.getElementById('order-district').value;
+    address.street = document.getElementById('order-street').value.trim();
+    address.number = document.getElementById('order-number').value.trim();
+    address.compl = document.getElementById('order-compl').value.trim();
+    address.ref = document.getElementById('order-ref').value.trim();
+    address.cep = document.getElementById('order-cep').value.trim();
 
-    if (!district || !street || !number) {
+    if (!address.district || !address.street || !address.number) {
       showToast('Por favor, preencha o endereço completo de entrega.', '⚠️');
       return;
     }
@@ -527,7 +605,7 @@ function processOrder(e) {
     return;
   }
 
-  // Calculate financials (carrinho repreçado pelo catálogo antes de fechar o pedido)
+  // Carrinho repreçado pelo catálogo antes de fechar o pedido
   cart = repriceCart(cart, PRODUCTS_BY_ID, extrasByName);
   if (cart.length === 0) {
     saveCartToStorage();
@@ -535,101 +613,101 @@ function processOrder(e) {
     showToast('Os itens do carrinho não estão mais disponíveis.', '⚠️');
     return;
   }
-  const subtotal = getCartSubtotal();
-  const discount = getCartDiscount();
-  const fee = getDeliveryFee(deliveryType === 'delivery');
-  const total = calcTotal({ subtotal, discount, fee });
 
-  // Generate Unique Order Code
-  const orderId = `UP-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  // Format Payment Description
-  let paymentText = '';
-  if (paymentMethod === 'pix') {
-    paymentText = '⚡ Pix (Chave: 47996366274)';
-  } else if (paymentMethod === 'cartao') {
-    paymentText = '💳 Cartão na Entrega (Maquininha)';
-  } else {
-    const change = document.getElementById('order-change').value.trim();
-    paymentText = `💵 Dinheiro ${change ? `(Troco para: ${change})` : '(Sem troco)'}`;
+  const submitBtn = document.getElementById('submit-order-btn');
+  const submitLabel = submitBtn?.innerHTML;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando pedido...';
   }
 
-  // Build WhatsApp Message
-  let msg = `🌭 *NOVO PEDIDO ONLINE - UNIVERSAL PRENSADOS*\n`;
-  msg += `*Pedido:* #${orderId}\n`;
-  msg += `--------------------------------------\n`;
-  msg += `👤 *Cliente:* ${name}\n`;
-  msg += `📱 *WhatsApp:* ${phone}\n`;
-  msg += `🛵 *Tipo:* ${deliveryType === 'delivery' ? 'Entrega em Casa' : 'Retirada no Balcão (Jarivatuba)'}\n`;
+  // Abre a aba do WhatsApp já no clique (depois de um await o navegador bloquearia o pop-up)
+  const waWindow = window.open('', '_blank');
 
-  if (deliveryType === 'delivery') {
-    msg += `📍 *Endereço:* ${street}, nº ${number}\n`;
-    msg += `📍 *Bairro:* ${district} - Joinville/SC\n`;
-    if (compl) msg += `🏢 *Compl:* ${compl}\n`;
-    if (ref) msg += `🔍 *Ref:* ${ref}\n`;
-  }
-  msg += `--------------------------------------\n`;
-  msg += `📋 *ITENS DO PEDIDO:*\n\n`;
-
-  cart.forEach((item, i) => {
-    msg += `${i + 1}. *${item.qty}x ${item.name}* — ${formatBRL(item.unitPrice * item.qty)}\n`;
-    if (item.extras && item.extras.length > 0) {
-      msg += `   └ Adicionais: ${item.extras.map(e => e.name).join(', ')}\n`;
-    }
-    if (item.removals && item.removals.length > 0) {
-      msg += `   └ Retirar: ${item.removals.join(', ')}\n`;
-    }
-    if (item.notes) {
-      msg += `   └ Observação: "${item.notes}"\n`;
-    }
-    msg += `\n`;
+  const result = await submitOrderToApi({
+    customer: { name, phone },
+    deliveryType,
+    address: deliveryType === 'delivery' ? address : null,
+    payment: { method: paymentMethod, changeFor },
+    couponCode: appliedCoupon?.code || null,
+    items: cart.map(item => ({ id: item.id, qty: item.qty, extras: item.extras.map(x => x.name), removals: item.removals, notes: item.notes })),
   });
 
-  msg += `--------------------------------------\n`;
-  msg += `💵 *Subtotal:* ${formatBRL(subtotal)}\n`;
-  if (discount > 0) {
-    msg += `🎉 *Desconto Cupom (${appliedCoupon.code}):* -${formatBRL(discount)}\n`;
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = submitLabel;
   }
-  if (deliveryType === 'delivery') {
-    msg += `🛵 *Taxa de Entrega:* ${fee === 0 ? 'GRÁTIS' : formatBRL(fee)}\n`;
+
+  if (result.userError) {
+    waWindow?.close();
+    showToast(result.userError, '⚠️');
+    return;
   }
-  msg += `💰 *TOTAL A PAGAR: ${formatBRL(total)}*\n`;
-  msg += `💳 *Forma de Pagamento:* ${paymentText}\n`;
-  msg += `--------------------------------------\n`;
-  msg += `Aguardando confirmação do pedido! Muito obrigado!`;
 
-  const encodedMsg = encodeURIComponent(msg);
-  const whatsappUrl = `https://wa.me/${SETTINGS.whatsappPhone}?text=${encodedMsg}`;
+  // Valores oficiais: os do servidor; sem API, os calculados aqui
+  let code;
+  let trackingUrl = '';
+  let items;
+  let totals;
+  let couponCode;
+  if (result.ok) {
+    const { order } = result.data;
+    code = result.data.code;
+    trackingUrl = `${location.origin}/pedido/?t=${encodeURIComponent(result.data.trackingToken)}`;
+    items = order.items;
+    totals = { subtotal: order.subtotal, discount: order.discount, deliveryFee: order.deliveryFee, total: order.total };
+    couponCode = order.couponCode;
+    try { localStorage.setItem('up_last_order', result.data.trackingToken); } catch { /* sem armazenamento */ }
+  } else {
+    code = `#UP-${Math.floor(1000 + Math.random() * 9000)}`;
+    items = cart;
+    const subtotal = getCartSubtotal();
+    const discount = getCartDiscount();
+    const fee = getDeliveryFee(deliveryType === 'delivery');
+    totals = { subtotal, discount, deliveryFee: fee, total: calcTotal({ subtotal, discount, fee }) };
+    couponCode = appliedCoupon?.code;
+  }
 
-  // Open WhatsApp in new tab
-  window.open(whatsappUrl, '_blank');
+  const paymentText = paymentMethod === 'pix'
+    ? '⚡ Pix (Chave: 47996366274)'
+    : paymentMethod === 'cartao'
+      ? '💳 Cartão na Entrega (Maquininha)'
+      : `💵 Dinheiro ${changeFor ? `(Troco para: ${changeFor})` : '(Sem troco)'}`;
 
-  // Analytics: Track Purchase
+  const msg = buildWhatsAppMessage({ code, trackingUrl, name, phone, deliveryType, address, items, totals, paymentText, couponCode });
+  const whatsappUrl = `https://wa.me/${SETTINGS.whatsappPhone}?text=${encodeURIComponent(msg)}`;
+  if (waWindow) waWindow.location.href = whatsappUrl;
+
   trackPurchase({
-    orderId,
+    orderId: code,
     items: [...cart],
-    subtotal,
-    discount,
-    deliveryFee: fee,
-    total,
+    subtotal: totals.subtotal,
+    discount: totals.discount,
+    deliveryFee: totals.deliveryFee,
+    total: totals.total,
     paymentMethod,
     deliveryType,
   });
 
-  // Show Success Modal
+  // Modal de sucesso
   closeCheckoutModal();
-  document.getElementById('success-order-id').textContent = `#${orderId}`;
-  document.getElementById('success-order-dest').textContent = deliveryType === 'delivery' 
-    ? `${street}, ${number} - ${district}` 
+  document.getElementById('success-order-id').textContent = code;
+  document.getElementById('success-order-dest').textContent = deliveryType === 'delivery'
+    ? `${address.street}, ${address.number} - ${address.district}`
     : 'Retirada no Balcão (R. Monsenhor Gercino, 4486)';
-  document.getElementById('success-order-total').textContent = formatBRL(total);
+  document.getElementById('success-order-total').textContent = formatBRL(totals.total);
   document.getElementById('success-whatsapp-link').href = whatsappUrl;
+  document.getElementById('success-order-msg').textContent = result.ok
+    ? 'Seu pedido foi registrado e já apareceu no painel da nossa cozinha. Envie também pelo WhatsApp para confirmar.'
+    : 'Envie o pedido pelo WhatsApp para a nossa equipe confirmar.';
+  const trackLink = document.getElementById('success-track-link');
+  trackLink.classList.toggle('hidden', !result.ok);
+  if (result.ok) trackLink.href = trackingUrl;
 
   const successModal = document.getElementById('success-modal-backdrop');
   successModal.classList.add('active');
   successModal.setAttribute('aria-hidden', 'false');
 
-  // Clear Cart
   cart = [];
   appliedCoupon = null;
   saveCartToStorage();
@@ -650,11 +728,9 @@ document.addEventListener('DOMContentLoaded', () => {
     statProducts.textContent = String(PRODUCTS.length);
   }
 
-  // Adicionais válidos e seus preços (fonte única: checkboxes do modal)
-  extrasByName = new Map(
-    [...document.querySelectorAll('#custom-modal input[name="extra"]')]
-      .map(cb => [cb.dataset.name, { name: cb.dataset.name, price: parseFloat(cb.dataset.price) }])
-  );
+  // Adicionais e remoções do modal (fonte única: src/menu-options.js, também usada pelo servidor)
+  renderMenuOptions();
+  extrasByName = EXTRAS_BY_NAME;
 
   // Bairros e taxas vindos do CMS
   const districtSelectEl = document.getElementById('order-district');
@@ -862,11 +938,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (isDelivery) {
         addressGroup.classList.remove('hidden');
+        document.getElementById('order-cep').setAttribute('required', 'true');
         document.getElementById('order-district').setAttribute('required', 'true');
         document.getElementById('order-street').setAttribute('required', 'true');
         document.getElementById('order-number').setAttribute('required', 'true');
       } else {
         addressGroup.classList.add('hidden');
+        // sem isso o CEP escondido bloqueava o envio de pedidos para retirada
+        document.getElementById('order-cep').removeAttribute('required');
         document.getElementById('order-district').removeAttribute('required');
         document.getElementById('order-street').removeAttribute('required');
         document.getElementById('order-number').removeAttribute('required');

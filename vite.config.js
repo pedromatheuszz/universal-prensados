@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import fs from 'fs';
+import { devApi } from './server/dev-api.js';
 
 // Troca as referências fixas do index.html (ex.: images/optimized/cut_dogzao-320w.webp)
 // pelos nomes com hash gerados por scripts/optimize-images.js
@@ -17,7 +18,7 @@ function optimizedImagesInHtml() {
 
 export default defineConfig({
   root: '.',
-  plugins: [optimizedImagesInHtml()],
+  plugins: [optimizedImagesInHtml(), devApi()],
   publicDir: 'public',
   build: {
     outDir: 'dist',
@@ -40,6 +41,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        painel: resolve(__dirname, 'painel/index.html'),
+        pedido: resolve(__dirname, 'pedido/index.html'),
       },
       output: {
         // Code splitting strategy
@@ -83,7 +86,7 @@ export default defineConfig({
   // Server configuration for development
   server: {
     port: 3000,
-    open: true,
+    open: !process.env.NO_OPEN,
     cors: true,
     headers: {
       'Service-Worker-Allowed': '/',
@@ -92,7 +95,7 @@ export default defineConfig({
   // Preview server (for production preview)
   preview: {
     port: 4173,
-    open: true,
+    open: !process.env.NO_OPEN,
   },
   // CSS configuration
   css: {

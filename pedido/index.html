@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acompanhe seu pedido | Universal Prensados</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#070c1c">
+  <script type="module" src="../theme-init.js"></script>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self';">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700;800;900&display=swap">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../src/pages.css">
+  <link rel="icon" href="/images/icon-96.png" type="image/png">
+</head>
+<body class="page-tracking">
+  <header class="page-header">
+    <a href="/" class="page-header__brand">
+      <img src="/images/logo-96.webp" alt="" width="40" height="40">
+      <span>Universal <strong>Prensados</strong></span>
+    </a>
+    <a href="/#cardapio" class="btn btn--glass btn--sm">Cardápio</a>
+  </header>
+
+  <main class="tracking" id="tracking" aria-live="polite">
+    <section class="tracking-card" id="tracking-loading">
+      <p class="tracking__muted">Carregando seu pedido...</p>
+    </section>
+
+    <section class="tracking-card hidden" id="tracking-error">
+      <h1 class="tracking__title">Pedido não encontrado</h1>
+      <p class="tracking__muted" id="tracking-error-msg">Confira o link que você recebeu ou fale com a gente no WhatsApp.</p>
+      <a class="btn btn--primary" href="https://wa.me/5547996366274" target="_blank" rel="noopener">Falar no WhatsApp</a>
+    </section>
+
+    <section class="tracking-card hidden" id="tracking-order">
+      <p class="tracking__eyebrow">Pedido <strong id="t-code">#0000</strong></p>
+      <h1 class="tracking__title" id="t-title">Olá!</h1>
+      <p class="tracking__muted" id="t-subtitle"></p>
+
+      <ol class="steps" id="t-steps"></ol>
+
+      <div class="tracking__cancel hidden" id="t-cancelled">
+        <strong>Pedido cancelado.</strong> Se tiver dúvidas, fale com a gente pelo WhatsApp.
+      </div>
+
+      <h2 class="tracking__section">Itens</h2>
+      <ul class="tracking__items" id="t-items"></ul>
+
+      <dl class="tracking__totals" id="t-totals"></dl>
+
+      <div class="tracking__actions">
+        <a class="btn btn--primary btn--full" href="https://wa.me/5547996366274" target="_blank" rel="noopener">Falar com a loja no WhatsApp</a>
+        <p class="tracking__muted tracking__updated" id="t-updated"></p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="../src/pedido.js"></script>
+</body>
+</html>

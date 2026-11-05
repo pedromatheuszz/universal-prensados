@@ -1,0 +1,10 @@
+{
+  "id": "combo_chicken",
+  "name": "Combo Chicken Completo",
+  "category": "combos",
+  "price": 30.5,
+  "desc": "1 Chicken Grande + Porção de batata frita de 150g + 1 Refrigerante lata 350ml gelado.",
+  "image": "combo_chicken.jpg",
+  "badge": "📦 Combo Individual",
+  "hasExtras": true
+}

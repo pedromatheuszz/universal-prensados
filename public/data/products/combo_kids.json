@@ -1,0 +1,10 @@
+{
+  "id": "combo_kids",
+  "name": "Combo Kids",
+  "category": "combos",
+  "price": 20.5,
+  "desc": "1 Dog pequeno + Batata frita de 100g + Suco ou refrigerante lata.",
+  "image": "combo_kids.jpg",
+  "badge": "👶 Para os Pequenos",
+  "hasExtras": true
+}

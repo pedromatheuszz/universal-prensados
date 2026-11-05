@@ -1,0 +1,10 @@
+{
+  "id": "agua",
+  "name": "Água Mineral 500ml",
+  "category": "bebidas",
+  "price": 4.5,
+  "desc": "Água mineral natural gelada, com ou sem gás.",
+  "image": "agua.jpg",
+  "badge": "",
+  "hasExtras": false
+}

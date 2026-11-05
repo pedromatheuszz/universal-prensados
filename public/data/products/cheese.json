@@ -1,0 +1,10 @@
+{
+  "id": "cheese",
+  "name": "Cheese Prensado",
+  "category": "salgados",
+  "price": 15,
+  "desc": "Pão prensado, milho, batata palha, catchup, maionese, salsicha e camada dupla de queijo mussarela derretido.",
+  "image": "dogzao.jpg",
+  "badge": "🧀 Muito Queijo",
+  "hasExtras": true
+}

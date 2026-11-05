@@ -1,0 +1,10 @@
+{
+  "id": "refri_lata",
+  "name": "Refrigerante Lata 350ml",
+  "category": "bebidas",
+  "price": 8,
+  "desc": "Coca-Cola, Guaraná Antarctica, Fanta Laranja ou Sprite. Bem gelado!",
+  "image": "refri_lata.jpg",
+  "badge": "",
+  "hasExtras": false
+}

@@ -1,0 +1,10 @@
+{
+  "id": "chicken",
+  "name": "7. Chicken Especial",
+  "category": "especiais",
+  "price": 17,
+  "desc": "Pão prensado na hora, milho, batata palha, salsicha, frango desfiado artesanal suculento e maionese da casa.",
+  "image": "chicken.jpg",
+  "badge": "⭐ Favorito",
+  "hasExtras": true
+}

@@ -1,0 +1,10 @@
+{
+  "id": "doce_sonho",
+  "name": "Prensado Sonho de Valsa",
+  "category": "doces",
+  "price": 13.5,
+  "desc": "Pão prensado quentinho com toque especial, creme de leite fresco e muito bombom Sonho de Valsa derretido.",
+  "image": "doce_sonho.jpg",
+  "badge": "Sobremesa",
+  "hasExtras": false
+}

@@ -1,0 +1,10 @@
+{
+  "id": "dogzao_duplo",
+  "name": "4. Dogzão Duplo",
+  "category": "salgados",
+  "price": 18.00,
+  "desc": "Super reforçado! Pão prensado, milho, batata palha, 2 salsichas, muito bacon, calabresa, catchup e maionese.",
+  "image": "dogzao.jpg",
+  "badge": "Gigante",
+  "hasExtras": true
+}

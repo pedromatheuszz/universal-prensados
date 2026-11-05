@@ -1,0 +1,10 @@
+{
+  "id": "chopp_pilsen",
+  "name": "Chopp Pilsen Artesanal 400ml",
+  "category": "bebidas",
+  "price": 13,
+  "desc": "Chopp Pilsen artesanal de Joinville, servido com colarinho perfeito e super gelado.",
+  "image": "chopp.jpg",
+  "badge": "🍺 Gelado",
+  "hasExtras": false
+}

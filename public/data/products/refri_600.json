@@ -1,0 +1,10 @@
+{
+  "id": "refri_600",
+  "name": "Refrigerante 600ml",
+  "category": "bebidas",
+  "price": 10,
+  "desc": "Garrafa individual de 600ml estupidamente gelada.",
+  "image": "refri_lata.jpg",
+  "badge": "",
+  "hasExtras": false
+}

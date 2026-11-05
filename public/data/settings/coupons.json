@@ -1,0 +1,10 @@
+{
+  "coupons": [
+    {
+      "code": "BEMVINDO10",
+      "discountPercent": 10,
+      "active": true,
+      "description": "10% de desconto no primeiro pedido pelo site"
+    }
+  ]
+}

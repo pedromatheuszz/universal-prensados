@@ -1,0 +1,10 @@
+{
+  "id": "combo_dogzao",
+  "name": "Combo Dogzão Completo",
+  "category": "combos",
+  "price": 30.5,
+  "desc": "1 Dogzão Grande bem recheado + Batata frita crocante de 150g + 1 Refrigerante lata geladinho.",
+  "image": "combo_dogzao.jpg",
+  "badge": "🔥 Top Vendas",
+  "hasExtras": true
+}

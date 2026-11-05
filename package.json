@@ -1,0 +1,29 @@
+{
+  "name": "universal-prensados",
+  "version": "1.0.0",
+  "description": "Universal Prensados - Lanches Prensados Artesanais em Joinville",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "optimize-images": "node scripts/optimize-images.js",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
+    "lint": "eslint . --ext .js",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "eslint": "^8.56.0",
+    "jsdom": "^23.0.0",
+    "sharp": "^0.33.2",
+    "terser": "^5.24.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  }
+}

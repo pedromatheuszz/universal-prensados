@@ -1,0 +1,10 @@
+{
+  "id": "suco_polpa",
+  "name": "Suco Natural de Polpa 500ml",
+  "category": "bebidas",
+  "price": 9,
+  "desc": "Polpa de fruta natural batida na hora: Maracujá, Laranja, Abacaxi ou Morango.",
+  "image": "suco.jpg",
+  "badge": "Fruta Natural",
+  "hasExtras": false
+}

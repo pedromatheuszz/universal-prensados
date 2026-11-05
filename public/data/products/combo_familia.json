@@ -1,0 +1,10 @@
+{
+  "id": "combo_familia",
+  "name": "Combo Família Universal",
+  "category": "combos",
+  "price": 109.9,
+  "desc": "2 Dogs Duplos Grandes + 2 Dogzões Grandes + Batata frita 600g + 1 Coca-Cola 2L.",
+  "image": "combo_familia.jpg",
+  "badge": "👨‍👩‍👧‍👦 Para Toda Família",
+  "hasExtras": true
+}

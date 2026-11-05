@@ -1,0 +1,10 @@
+{
+  "id": "dog_lino",
+  "name": "5. Dog Lino (Frango)",
+  "category": "salgados",
+  "price": 13.5,
+  "desc": "Pão prensado macio e crocante, milho, batata palha, catchup, maionese e salsicha de frango selecionada.",
+  "image": "dog.jpg",
+  "badge": "Frango",
+  "hasExtras": true
+}

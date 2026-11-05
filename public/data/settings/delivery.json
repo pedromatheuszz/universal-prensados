@@ -1,0 +1,16 @@
+{
+  "freeShippingThreshold": 70.00,
+  "districts": [
+    { "name": "Jarivatuba", "fee": 4.00, "slug": "jarivatuba" },
+    { "name": "João Costa", "fee": 4.00, "slug": "joao costa" },
+    { "name": "Guanabara", "fee": 5.00, "slug": "guanabara" },
+    { "name": "Fátima", "fee": 5.00, "slug": "fatima" },
+    { "name": "Itaum", "fee": 6.00, "slug": "itaum" },
+    { "name": "Paranaguamirim", "fee": 6.00, "slug": "paranaguamirim" },
+    { "name": "Boehmerwald", "fee": 7.00, "slug": "boehmerwald" },
+    { "name": "Bucarein", "fee": 7.00, "slug": "bucarein" },
+    { "name": "Floresta", "fee": 7.00, "slug": "floresta" },
+    { "name": "Centro", "fee": 8.00, "slug": "centro" },
+    { "name": "Outro Bairro de Joinville", "fee": 8.00, "slug": "outro bairro" }
+  ]
+}

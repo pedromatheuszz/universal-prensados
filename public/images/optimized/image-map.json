@@ -72,7 +72,7 @@
     ]
   },
   "combo_familia": {
-    "file": "combo_familia-127016b1",
+    "file": "combo_familia-471bbf1e",
     "width": 600,
     "widths": [
       320,
@@ -128,7 +128,7 @@
     ]
   },
   "doce_kitkat": {
-    "file": "doce_kitkat-05d1a736",
+    "file": "doce_kitkat-775d527d",
     "width": 600,
     "widths": [
       320,
@@ -136,7 +136,7 @@
     ]
   },
   "doce_ouro": {
-    "file": "doce_ouro-9349c7cc",
+    "file": "doce_ouro-5a86a555",
     "width": 600,
     "widths": [
       320,
@@ -144,7 +144,7 @@
     ]
   },
   "doce_sonho": {
-    "file": "doce_sonho-6c70fa83",
+    "file": "doce_sonho-d6e11902",
     "width": 600,
     "widths": [
       320,
@@ -209,6 +209,14 @@
   },
   "eggzao": {
     "file": "eggzao-bb4d41d0",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "familia_foto": {
+    "file": "familia_foto-127016b1",
     "width": 600,
     "widths": [
       320,

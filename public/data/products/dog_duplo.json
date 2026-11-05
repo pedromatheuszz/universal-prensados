@@ -4,7 +4,7 @@
   "category": "salgados",
   "price": 12.5,
   "desc": "Pão prensado na chapa bem crocante, milho, batata palha, catchup, maionese e duas salsichas.",
-  "image": "dog.jpg",
+  "image": "dog_duplo.png",
   "badge": "Duplo",
   "hasExtras": true,
   "order": 20

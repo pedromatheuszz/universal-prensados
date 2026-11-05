@@ -27,8 +27,9 @@ function isMoney(v) {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0;
 }
 
-const optimizedImages = new Set(
-  fs.existsSync(IMAGE_MAP_FILE) ? Object.keys(readJSON(IMAGE_MAP_FILE) || {}) : []
+// { nome: { file, width, widths } } gerado por scripts/optimize-images.js (file tem hash do conteúdo)
+const optimizedImages = new Map(
+  Object.entries(fs.existsSync(IMAGE_MAP_FILE) ? readJSON(IMAGE_MAP_FILE) || {} : {})
 );
 
 // Imagens com versões responsivas geradas viram { key }; uploads do CMS ficam com o caminho original.
@@ -38,7 +39,8 @@ function resolveImage(image, file) {
     return { src: '' };
   }
   const key = path.basename(image).replace(/\.[a-z0-9]+$/i, '');
-  if (optimizedImages.has(key)) return { key };
+  const optimized = optimizedImages.get(key);
+  if (optimized) return { key: optimized.file, widths: optimized.widths, width: optimized.width };
   if (/^(https?:)?\/\//.test(image) || image.startsWith('/')) return { src: image };
   return { src: `/images/uploads/${path.basename(image)}` };
 }

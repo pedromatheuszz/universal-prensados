@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'child_process';
 import fs from 'fs';
-import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag } from '../src/utils.js';
+import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag, getStoreStatus } from '../src/utils.js';
 import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../src/pricing.js';
 
 describe('formatBRL', () => {
@@ -37,8 +37,10 @@ describe('escapeHTML', () => {
 
 describe('imagens', () => {
   it('gera <picture> responsivo para imagens otimizadas', () => {
-    const html = createOptimizedPicture({ key: 'dog' }, 'Dog "Tradicional"', 'thumb');
+    const html = createOptimizedPicture({ key: 'dog', widths: [320, 480], width: 600 }, 'Dog "Tradicional"', 'thumb');
     expect(html).toContain('images/optimized/dog-320w.avif 320w');
+    expect(html).toContain('images/optimized/dog.avif 600w');
+    expect(html).not.toContain('800w');
     expect(html).toContain('src="images/optimized/dog.webp"');
     expect(html).toContain('alt="Dog &quot;Tradicional&quot;"');
   });
@@ -50,7 +52,7 @@ describe('imagens', () => {
   });
 
   it('monta a imagem do modal', () => {
-    expect(createOptimizedImageTag({ key: 'agua' }).src).toBe('images/optimized/agua.webp');
+    expect(createOptimizedImageTag({ key: 'agua', widths: [320], width: 600 }).src).toBe('images/optimized/agua.webp');
     expect(createOptimizedImageTag({ src: '/x.jpg' })).toEqual({ src: '/x.jpg', srcsetWebp: '' });
   });
 });
@@ -162,5 +164,26 @@ describe('catálogo gerado do CMS', () => {
     expect(catalog.settings.whatsappPhone).toMatch(/^\d{12,13}$/);
     expect(catalog.settings.districts.length).toBeGreaterThan(0);
     expect(catalog.settings.freeShippingThreshold).toBeGreaterThan(0);
+  });
+});
+
+describe('getStoreStatus (horário de Brasília, UTC-3)', () => {
+  // 2026-11-05 é quinta-feira
+  it('aberto durante o expediente', () => {
+    expect(getStoreStatus(new Date('2026-11-05T23:00:00Z')).open).toBe(true); // 20:00
+  });
+
+  it('fechado antes de abrir no mesmo dia', () => {
+    expect(getStoreStatus(new Date('2026-11-05T15:00:00Z'))).toEqual({ open: false, label: 'Fechado • Abrimos hoje às 19:00' });
+  });
+
+  it('fecha às 23:30', () => {
+    expect(getStoreStatus(new Date('2026-11-06T02:29:00Z')).open).toBe(true); // 23:29
+    expect(getStoreStatus(new Date('2026-11-06T02:31:00Z')).label).toBe('Fechado • Abrimos amanhã às 19:00');
+  });
+
+  it('pula o domingo', () => {
+    // sábado 23:45 → próxima abertura é segunda
+    expect(getStoreStatus(new Date('2026-11-08T02:45:00Z')).label).toBe('Fechado • Abrimos segunda às 19:00');
   });
 });

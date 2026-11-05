@@ -1,0 +1,11 @@
+{
+  "id": "egg",
+  "name": "11. Egg",
+  "category": "especiais",
+  "price": 18.5,
+  "desc": "Pão prensado, milho, batata palha, catchup, maionese, salsicha, ovo, presunto e queijo.",
+  "image": "egg.png",
+  "badge": "🍳 Com Ovo",
+  "hasExtras": true,
+  "order": 95
+}

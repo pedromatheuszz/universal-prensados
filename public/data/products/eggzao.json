@@ -1,0 +1,11 @@
+{
+  "id": "eggzao",
+  "name": "12. Eggzão",
+  "category": "especiais",
+  "price": 24,
+  "desc": "Pão prensado, milho, batata palha, catchup, maionese, salsicha, ovo, presunto, queijo, bacon e calabresa.",
+  "image": "eggzao.png",
+  "badge": "💪 O Mais Completo",
+  "hasExtras": true,
+  "order": 96
+}

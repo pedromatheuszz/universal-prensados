@@ -7,10 +7,10 @@
      Joinville Neighborhoods Delivery Fees, Pix & WhatsApp Order)
    ========================================================= */
 
-import * as THREE from "three";
 import { PRODUCTS, PRODUCTS_BY_ID, SETTINGS } from "./src/catalog.js";
-import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag } from "./src/utils.js";
+import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag, getStoreStatus } from "./src/utils.js";
 import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from "./src/pricing.js";
+import { initAnimations, revealProducts, filterProducts, flyToCart, revealCartItems } from "./src/animations.js";
 import { initAnalytics, trackAddToCart, trackBeginCheckout, trackPurchase, trackApplyCoupon, trackViewItem, trackSearch } from "./analytics.js";
 
 // Initialize Analytics
@@ -23,6 +23,16 @@ let currentCustomizingItem = null;
 let currentModalQty = 1;
 // Adicionais válidos (nome → { name, price }), lidos do modal no carregamento
 let extrasByName = new Map();
+
+// --- 2b. STATUS DA LOJA (aberto / fechado) ---
+function updateStoreStatus() {
+  const badge = document.getElementById('store-status');
+  const text = document.getElementById('store-status-text');
+  if (!badge || !text) return;
+  const status = getStoreStatus(new Date());
+  badge.classList.toggle('is-closed', !status.open);
+  text.textContent = status.label;
+}
 
 // --- 3. TOAST NOTIFICATION UTILITY ---
 function showToast(message, icon = '✓') {
@@ -84,369 +94,56 @@ function initThemeEngine() {
   });
 }
 
-// --- 5. THREE.JS 3D HERO CANVAS ANIMATION ---
-function initHero3D() {
-  const canvas = document.getElementById('hero-3d-canvas');
-  if (!canvas) return;
-
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 25;
-
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
-  scene.add(ambientLight);
-
-  const mainLight = new THREE.DirectionalLight(0xfff5ea, 1.4);
-  mainLight.position.set(12, 18, 15);
-  scene.add(mainLight);
-
-  const warmBackLight = new THREE.PointLight(0xe63914, 2.8, 60);
-  warmBackLight.position.set(-10, 8, -5);
-  scene.add(warmBackLight);
-
-  const goldenFillLight = new THREE.PointLight(0xf59e0b, 2.2, 50);
-  goldenFillLight.position.set(8, -8, 10);
-  scene.add(goldenFillLight);
-
-  // Helper to build smooth rounded capsule geometries (compatible with all Three.js releases)
-  function createCapsule(radius, length, material) {
-    const group = new THREE.Group();
-    // Cylinder body laying on X axis
-    const cylinder = new THREE.Mesh(
-      new THREE.CylinderGeometry(radius, radius, length, 32),
-      material
-    );
-    cylinder.rotation.z = Math.PI / 2;
-    group.add(cylinder);
-
-    // Left hemisphere cap
-    const leftCap = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 32, 16),
-      material
-    );
-    leftCap.position.x = -length / 2;
-    group.add(leftCap);
-
-    // Right hemisphere cap
-    const rightCap = new THREE.Mesh(
-      new THREE.SphereGeometry(radius, 32, 16),
-      material
-    );
-    rightCap.position.x = length / 2;
-    group.add(rightCap);
-
-    return group;
-  }
-
-  // ====== 3D HOT DOG / PRENSADO ARTISANAL MODEL ======
-  const hotdogGroup = new THREE.Group();
-
-  // 1. Salsicha (Juicy Reddish-Brown Hotdog Sausage)
-  const sausageMat = new THREE.MeshStandardMaterial({
-    color: 0xb32815,
-    roughness: 0.3,
-    metalness: 0.08
-  });
-  const sausage = createCapsule(1.15, 12.8, sausageMat);
-  sausage.position.set(0, 0.25, 0);
-  hotdogGroup.add(sausage);
-
-  // 2. Pão Artesanal Prensado (Toasted Golden Bread Buns)
-  const bunMat = new THREE.MeshStandardMaterial({
-    color: 0xdf9438, // Golden toasted bun color
-    roughness: 0.7,
-    metalness: 0.03
-  });
-
-  // Bottom bun (Ligeiramente achatado na chapa)
-  const bottomBun = createCapsule(1.65, 11.2, bunMat);
-  bottomBun.position.set(0, -0.65, 0);
-  bottomBun.scale.set(1.05, 0.72, 1.3);
-  hotdogGroup.add(bottomBun);
-
-  // Back bun lip (Apoio de trás do pão)
-  const backBun = createCapsule(1.35, 10.6, bunMat);
-  backBun.position.set(0, 0.15, -0.95);
-  backBun.rotation.x = -0.22;
-  backBun.scale.set(1.02, 0.8, 0.85);
-  hotdogGroup.add(backBun);
-
-  // Front bun lip (Apoio da frente do pão)
-  const frontBun = createCapsule(1.35, 10.6, bunMat);
-  frontBun.position.set(0, 0.15, 0.95);
-  frontBun.rotation.x = 0.22;
-  frontBun.scale.set(1.02, 0.8, 0.85);
-  hotdogGroup.add(frontBun);
-
-  // 3. Marcas de Prensa na Chapa (Grill Press Marks)
-  const grillMat = new THREE.MeshStandardMaterial({
-    color: 0x662908, // Charred grill marks
-    roughness: 0.9
-  });
-  for (let i = -4.5; i <= 4.5; i += 1.5) {
-    const mark = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.06, 2.9), grillMat);
-    mark.position.set(i, -1.18, 0);
-    mark.rotation.y = 0.25;
-    hotdogGroup.add(mark);
-  }
-
-  // 4. Molhos em Zigue-zague (Catchup & Mostarda / Maionese da Casa)
-  const wavePointsKetchup = [];
-  const wavePointsMustard = [];
-  for (let x = -5.2; x <= 5.2; x += 0.4) {
-    const waveK = Math.sin(x * 2.3) * 0.45;
-    wavePointsKetchup.push(new THREE.Vector3(x, 1.48, waveK + 0.1));
-
-    const waveM = Math.cos(x * 2.3) * 0.4;
-    wavePointsMustard.push(new THREE.Vector3(x, 1.44, waveM - 0.1));
-  }
-
-  const ketchupCurve = new THREE.CatmullRomCurve3(wavePointsKetchup);
-  const mustardCurve = new THREE.CatmullRomCurve3(wavePointsMustard);
-
-  const ketchupMat = new THREE.MeshStandardMaterial({
-    color: 0xd9160d, // Brilho de catchup artesanal
-    roughness: 0.18,
-    metalness: 0.12
-  });
-  const mustardMat = new THREE.MeshStandardMaterial({
-    color: 0xf59e0b, // Mostarda dourada especial
-    roughness: 0.22,
-    metalness: 0.05
-  });
-
-  const ketchupMesh = new THREE.Mesh(
-    new THREE.TubeGeometry(ketchupCurve, 64, 0.22, 12, false),
-    ketchupMat
-  );
-  const mustardMesh = new THREE.Mesh(
-    new THREE.TubeGeometry(mustardCurve, 64, 0.18, 12, false),
-    mustardMat
-  );
-  hotdogGroup.add(ketchupMesh);
-  hotdogGroup.add(mustardMesh);
-
-  // 5. Ingredientes do Recheio: Milho Cozido & Batata Palha Crocante & Bacon
-  // Grãos de milho verde
-  const cornMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.35 });
-  const cornGeom = new THREE.SphereGeometry(0.18, 12, 12);
-  for (let i = 0; i < 30; i++) {
-    const corn = new THREE.Mesh(cornGeom, cornMat);
-    const x = (Math.random() - 0.5) * 9.2;
-    const z = (Math.random() - 0.5) * 1.5;
-    corn.position.set(x, 1.42 + Math.random() * 0.15, z);
-    corn.scale.set(1.2, 0.8, 1.0);
-    hotdogGroup.add(corn);
-  }
-
-  // Palitos de batata palha
-  const strawMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.65 });
-  const strawGeom = new THREE.CylinderGeometry(0.045, 0.045, 0.95, 6);
-  for (let i = 0; i < 40; i++) {
-    const straw = new THREE.Mesh(strawGeom, strawMat);
-    const x = (Math.random() - 0.5) * 9.0;
-    const z = (Math.random() - 0.5) * 1.6;
-    straw.position.set(x, 1.5 + Math.random() * 0.25, z);
-    straw.rotation.set(
-      Math.random() * Math.PI,
-      Math.random() * Math.PI,
-      Math.random() * Math.PI
-    );
-    hotdogGroup.add(straw);
-  }
-
-  // Cubinhos de Bacon Crocante
-  const baconMat = new THREE.MeshStandardMaterial({ color: 0x8b1c11, roughness: 0.45 });
-  const baconGeom = new THREE.BoxGeometry(0.32, 0.16, 0.32);
-  for (let i = 0; i < 20; i++) {
-    const bacon = new THREE.Mesh(baconGeom, baconMat);
-    const x = (Math.random() - 0.5) * 8.6;
-    const z = (Math.random() - 0.5) * 1.4;
-    bacon.position.set(x, 1.55 + Math.random() * 0.15, z);
-    bacon.rotation.set(
-      (Math.random() - 0.5) * 0.6,
-      Math.random() * Math.PI,
-      (Math.random() - 0.5) * 0.6
-    );
-    hotdogGroup.add(bacon);
-  }
-
-  // Sementes de gergelim douradas no topo do pão
-  const sesameMat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.8 });
-  const sesameGeom = new THREE.SphereGeometry(0.08, 8, 8);
-  for (let i = 0; i < 35; i++) {
-    const sesame = new THREE.Mesh(sesameGeom, sesameMat);
-    const x = (Math.random() - 0.5) * 9.5;
-    const isBack = Math.random() > 0.5;
-    const z = isBack ? -1.0 - Math.random() * 0.3 : 1.0 + Math.random() * 0.3;
-    sesame.position.set(x, 0.75 + Math.random() * 0.2, z);
-    sesame.scale.set(1.5, 0.6, 1.0);
-    hotdogGroup.add(sesame);
-  }
-
-  // Posicionamento centralizado bem no meio do início do site
-  function updateHotdogScaleAndPos() {
-    const isMobile = window.innerWidth <= 768;
-    const scale = isMobile ? 0.82 : 1.12;
-    hotdogGroup.scale.set(scale, scale, scale);
-    hotdogGroup.position.set(0, isMobile ? 0.5 : 0, isMobile ? -4 : -1);
-  }
-  updateHotdogScaleAndPos();
-  hotdogGroup.rotation.set(0.25, 0, 0.1);
-  scene.add(hotdogGroup);
-
-  // 6. Floating Golden Seasoning & Steam Embers (Partículas flutuantes de aroma e tempero)
-  const particleCount = 120;
-  const partGeom = new THREE.BufferGeometry();
-  const partPositions = new Float32Array(particleCount * 3);
-
-  for (let i = 0; i < particleCount * 3; i += 3) {
-    partPositions[i] = (Math.random() - 0.5) * 45;
-    partPositions[i + 1] = (Math.random() - 0.5) * 30;
-    partPositions[i + 2] = (Math.random() - 0.5) * 20;
-  }
-
-  partGeom.setAttribute('position', new THREE.BufferAttribute(partPositions, 3));
-
-  const partMat = new THREE.PointsMaterial({
-    color: 0xf59e0b,
-    size: 0.38,
-    transparent: true,
-    opacity: 0.8,
-    blending: THREE.AdditiveBlending
-  });
-
-  const particleSystem = new THREE.Points(partGeom, partMat);
-  scene.add(particleSystem);
-
-  // Mouse interactivity
-  let mouseX = 0;
-  let mouseY = 0;
-  window.addEventListener('mousemove', (e) => {
-    mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
-    mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-  });
-
-  // Animation Loop with Clock
-  const clock = new THREE.Clock();
-
-  function animate() {
-    requestAnimationFrame(animate);
-
-    const elapsedTime = clock.getElapsedTime();
-    const isMobile = window.innerWidth <= 768;
-
-    // Flutuação suave bem no meio da tela com reação ao cursor
-    const baseY = isMobile ? 0.5 : 0;
-    hotdogGroup.position.x = mouseX * 0.9;
-    hotdogGroup.position.y = baseY + Math.sin(elapsedTime * 1.3) * 0.55;
-    
-    // Rotação suave 3D em torno do centro
-    const targetRotY = Math.sin(elapsedTime * 0.75) * 0.28 + mouseX * 0.5;
-    const targetRotX = 0.25 + Math.cos(elapsedTime * 0.6) * 0.14 - mouseY * 0.35;
-    const targetRotZ = 0.08 + Math.sin(elapsedTime * 0.5) * 0.08;
-
-    hotdogGroup.rotation.y += (targetRotY - hotdogGroup.rotation.y) * 0.05;
-    hotdogGroup.rotation.x += (targetRotX - hotdogGroup.rotation.x) * 0.05;
-    hotdogGroup.rotation.z += (targetRotZ - hotdogGroup.rotation.z) * 0.05;
-
-    // Drift suave das partículas de tempero
-    particleSystem.rotation.y += 0.001;
-    particleSystem.rotation.x += 0.0005;
-
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // Resize handler
-  window.addEventListener('resize', () => {
-    updateHotdogScaleAndPos();
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-  });
-}
-
-// --- 6. 3D TILT PHYSICS ON CARDS ---
-function initTiltPhysics() {
-  const cards = document.querySelectorAll('[data-tilt], .product-card');
-
-  cards.forEach(card => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-
-      const rotateX = -((y - centerY) / centerY) * 8; // max 8 deg
-      const rotateY = ((x - centerX) / centerX) * 8;
-
-      card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
-    });
-  });
-}
-
 // --- 7. RENDER MENU PRODUCTS ---
+// Os cards são criados uma única vez; trocar de categoria só esconde/mostra (animado com Flip)
+function productCardHTML(product) {
+  const hot = /mais|top|campeão/i.test(product.badge);
+  return `
+    <div class="product-card__thumb-wrapper">
+      ${createOptimizedPicture(product.image, product.name, 'product-card__thumb')}
+      ${product.badge ? `<span class="product-card__badge ${hot ? 'product-card__badge--hot' : ''}">${escapeHTML(product.badge)}</span>` : ''}
+    </div>
+    <div class="product-card__body">
+      <h3 class="product-card__title">${escapeHTML(product.name)}</h3>
+      <p class="product-card__desc">${escapeHTML(product.desc)}</p>
+      <div class="product-card__footer">
+        <span class="product-card__price">${formatBRL(product.price)}</span>
+        <button type="button" class="btn--add-cart" data-action="open-modal" data-id="${escapeHTML(product.id)}" aria-label="Adicionar ${escapeHTML(product.name)} ao pedido">
+          <span class="btn--add-cart__plus" aria-hidden="true">+</span> Adicionar
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderProducts(filterCategory = 'todos') {
   const container = document.getElementById('products-container');
   if (!container) return;
 
-  container.innerHTML = '';
-
-  const filtered = filterCategory === 'todos' 
-    ? PRODUCTS 
-    : PRODUCTS.filter(p => p.category === filterCategory);
-
-  filtered.forEach(product => {
-    const card = document.createElement('article');
-    card.className = 'product-card';
-    card.dataset.id = product.id;
-
-    const optimizedPicture = createOptimizedPicture(product.image, product.name, 'product-card__thumb');
-
-    card.innerHTML = `
-      <div class="product-card__thumb-wrapper">
-        ${optimizedPicture}
-        ${product.badge ? `<span class="product-card__badge ${product.badge.includes('Mais') ? 'product-card__badge--hot' : ''}">${escapeHTML(product.badge)}</span>` : ''}
-      </div>
-      <div class="product-card__body">
-        <div class="product-card__header">
-          <h3 class="product-card__title">${escapeHTML(product.name)}</h3>
-          <span class="product-card__price">${formatBRL(product.price)}</span>
-        </div>
-        <p class="product-card__desc">${escapeHTML(product.desc)}</p>
-        <div class="product-card__actions">
-          <button class="btn btn--add-cart" data-action="open-modal" data-id="${escapeHTML(product.id)}">
-            <span>+ Adicionar ao Pedido</span>
-          </button>
-        </div>
-      </div>
-    `;
-
-    container.appendChild(card);
-  });
-
-  // Re-bind tilt physics to new product cards
-  initTiltPhysics();
-
-  // Attach button click events
-  container.querySelectorAll('[data-action="open-modal"]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = btn.dataset.id;
-      openCustomizerModal(id);
+  let cards = [...container.querySelectorAll('.product-card')];
+  if (cards.length === 0) {
+    cards = PRODUCTS.map(product => {
+      const card = document.createElement('article');
+      card.className = 'product-card';
+      card.dataset.id = product.id;
+      card.dataset.category = product.category;
+      card.innerHTML = productCardHTML(product);
+      return card;
     });
-  });
+    container.append(...cards);
+
+    // O card inteiro abre a personalização; o botão garante acesso pelo teclado
+    container.addEventListener('click', (e) => {
+      const card = e.target.closest('.product-card');
+      if (card) openCustomizerModal(card.dataset.id);
+    });
+
+    cards.forEach(card => { card.hidden = filterCategory !== 'todos' && card.dataset.category !== filterCategory; });
+    revealProducts(cards.filter(c => !c.hidden));
+    return;
+  }
+
+  filterProducts(cards, card => filterCategory === 'todos' || card.dataset.category === filterCategory);
 }
 
 // --- 8. CUSTOMIZATION MODAL (Lanche Customizer) ---
@@ -728,6 +425,7 @@ function updateCartUI() {
 function openCart() {
   document.getElementById('cart-drawer').classList.add('active');
   document.getElementById('cart-overlay').classList.add('active');
+  revealCartItems();
 }
 
 function closeCart() {
@@ -943,8 +641,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Theme
   initThemeEngine();
 
-  // Load 3D WebGL Scene
-  initHero3D();
+  // Status de funcionamento (aberto/fechado) no hero
+  updateStoreStatus();
+  setInterval(updateStoreStatus, 60 * 1000);
+  const statProducts = document.getElementById('stat-products');
+  if (statProducts) {
+    statProducts.dataset.count = String(PRODUCTS.length);
+    statProducts.textContent = String(PRODUCTS.length);
+  }
 
   // Adicionais válidos e seus preços (fonte única: checkboxes do modal)
   extrasByName = new Map(
@@ -980,8 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render initial menu
   renderProducts('todos');
 
-  // Initialize Tilt
-  initTiltPhysics();
+  // Animações GSAP (hero, faixa, revelações ao rolar, efeitos de ponteiro)
+  initAnimations();
 
   // Mobile menu hamburger toggle
   const menuToggle = document.getElementById('menu-toggle');
@@ -999,16 +703,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-
-  // Header scroll shadow
-  const header = document.getElementById('header');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 40) {
-      header.classList.add('header--scrolled');
-    } else {
-      header.classList.remove('header--scrolled');
-    }
-  }, { passive: true });
 
   // Menu Category Filter Tabs
   document.querySelectorAll('.menu-tab-btn').forEach(btn => {
@@ -1094,6 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const notes = document.getElementById('modal-item-notes').value.trim();
 
       addToCart(currentCustomizingItem, extras, removals, notes, currentModalQty);
+      flyToCart(document.getElementById('modal-item-img'));
       closeCustomizerModal();
     });
   }

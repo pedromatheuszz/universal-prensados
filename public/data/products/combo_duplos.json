@@ -1,0 +1,11 @@
+{
+  "id": "combo_duplos",
+  "name": "Combo Duplos",
+  "category": "combos",
+  "price": 31.9,
+  "desc": "2 Dogs Duplos grandes + batata frita de 150g. Perfeito para dividir.",
+  "image": "combo_duplos.png",
+  "badge": "👥 Para Dois",
+  "hasExtras": false,
+  "order": 115
+}

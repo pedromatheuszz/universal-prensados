@@ -1,418 +1,250 @@
 {
   "agua": {
-    "original": "agua.jpg",
-    "webp": {
-      "320": "agua-320w.webp",
-      "480": "agua-480w.webp",
-      "640": "agua-640w.webp",
-      "800": "agua-800w.webp",
-      "1024": "agua-1024w.webp",
-      "original": "agua.webp"
-    },
-    "avif": {
-      "320": "agua-320w.avif",
-      "480": "agua-480w.avif",
-      "640": "agua-640w.avif",
-      "800": "agua-800w.avif",
-      "1024": "agua-1024w.avif",
-      "original": "agua.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "agua-e160aefc",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "batata": {
+    "file": "batata-fd677478",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "cheese": {
+    "file": "cheese-49cef1dc",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "chickao": {
-    "original": "chickao.jpg",
-    "webp": {
-      "320": "chickao-320w.webp",
-      "480": "chickao-480w.webp",
-      "640": "chickao-640w.webp",
-      "800": "chickao-800w.webp",
-      "1024": "chickao-1024w.webp",
-      "original": "chickao.webp"
-    },
-    "avif": {
-      "320": "chickao-320w.avif",
-      "480": "chickao-480w.avif",
-      "640": "chickao-640w.avif",
-      "800": "chickao-800w.avif",
-      "1024": "chickao-1024w.avif",
-      "original": "chickao.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "chickao-2b4fddb8",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "chicken": {
-    "original": "chicken.jpg",
-    "webp": {
-      "320": "chicken-320w.webp",
-      "480": "chicken-480w.webp",
-      "640": "chicken-640w.webp",
-      "800": "chicken-800w.webp",
-      "1024": "chicken-1024w.webp",
-      "original": "chicken.webp"
-    },
-    "avif": {
-      "320": "chicken-320w.avif",
-      "480": "chicken-480w.avif",
-      "640": "chicken-640w.avif",
-      "800": "chicken-800w.avif",
-      "1024": "chicken-1024w.avif",
-      "original": "chicken.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "chicken-1ec83d4e",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
-  "chopp": {
-    "original": "chopp.jpg",
-    "webp": {
-      "320": "chopp-320w.webp",
-      "480": "chopp-480w.webp",
-      "640": "chopp-640w.webp",
-      "800": "chopp-800w.webp",
-      "1024": "chopp-1024w.webp",
-      "original": "chopp.webp"
-    },
-    "avif": {
-      "320": "chopp-320w.avif",
-      "480": "chopp-480w.avif",
-      "640": "chopp-640w.avif",
-      "800": "chopp-800w.avif",
-      "1024": "chopp-1024w.avif",
-      "original": "chopp.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+  "chopp_pilsen": {
+    "file": "chopp_pilsen-e2f4129c",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "combo_chicken": {
-    "original": "combo_chicken.jpg",
-    "webp": {
-      "320": "combo_chicken-320w.webp",
-      "480": "combo_chicken-480w.webp",
-      "640": "combo_chicken-640w.webp",
-      "800": "combo_chicken-800w.webp",
-      "1024": "combo_chicken-1024w.webp",
-      "original": "combo_chicken.webp"
-    },
-    "avif": {
-      "320": "combo_chicken-320w.avif",
-      "480": "combo_chicken-480w.avif",
-      "640": "combo_chicken-640w.avif",
-      "800": "combo_chicken-800w.avif",
-      "1024": "combo_chicken-1024w.avif",
-      "original": "combo_chicken.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "combo_chicken-789261e4",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "combo_dogzao": {
-    "original": "combo_dogzao.jpg",
-    "webp": {
-      "320": "combo_dogzao-320w.webp",
-      "480": "combo_dogzao-480w.webp",
-      "640": "combo_dogzao-640w.webp",
-      "800": "combo_dogzao-800w.webp",
-      "1024": "combo_dogzao-1024w.webp",
-      "original": "combo_dogzao.webp"
-    },
-    "avif": {
-      "320": "combo_dogzao-320w.avif",
-      "480": "combo_dogzao-480w.avif",
-      "640": "combo_dogzao-640w.avif",
-      "800": "combo_dogzao-800w.avif",
-      "1024": "combo_dogzao-1024w.avif",
-      "original": "combo_dogzao.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "combo_dogzao-ed364e2c",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "combo_duplos": {
+    "file": "combo_duplos-56732975",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "combo_familia": {
-    "original": "combo_familia.jpg",
-    "webp": {
-      "320": "combo_familia-320w.webp",
-      "480": "combo_familia-480w.webp",
-      "640": "combo_familia-640w.webp",
-      "800": "combo_familia-800w.webp",
-      "1024": "combo_familia-1024w.webp",
-      "original": "combo_familia.webp"
-    },
-    "avif": {
-      "320": "combo_familia-320w.avif",
-      "480": "combo_familia-480w.avif",
-      "640": "combo_familia-640w.avif",
-      "800": "combo_familia-800w.avif",
-      "1024": "combo_familia-1024w.avif",
-      "original": "combo_familia.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "combo_familia-127016b1",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "combo_kids": {
-    "original": "combo_kids.jpg",
-    "webp": {
-      "320": "combo_kids-320w.webp",
-      "480": "combo_kids-480w.webp",
-      "640": "combo_kids-640w.webp",
-      "800": "combo_kids-800w.webp",
-      "1024": "combo_kids-1024w.webp",
-      "original": "combo_kids.webp"
-    },
-    "avif": {
-      "320": "combo_kids-320w.avif",
-      "480": "combo_kids-480w.avif",
-      "640": "combo_kids-640w.avif",
-      "800": "combo_kids-800w.avif",
-      "1024": "combo_kids-1024w.avif",
-      "original": "combo_kids.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "combo_kids-0dceba76",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "cut_chicken": {
+    "file": "cut_chicken-4c6b77f6",
+    "width": 593,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "cut_dog": {
+    "file": "cut_dog-24c6392b",
+    "width": 589,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "cut_dog_duplo": {
+    "file": "cut_dog_duplo-c785cac7",
+    "width": 584,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "cut_dogzao": {
+    "file": "cut_dogzao-ab087348",
+    "width": 568,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "cut_dogzao_duplo": {
+    "file": "cut_dogzao_duplo-1f66afc3",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "doce_kitkat": {
-    "original": "doce_kitkat.jpg",
-    "webp": {
-      "320": "doce_kitkat-320w.webp",
-      "480": "doce_kitkat-480w.webp",
-      "640": "doce_kitkat-640w.webp",
-      "800": "doce_kitkat-800w.webp",
-      "1024": "doce_kitkat-1024w.webp",
-      "original": "doce_kitkat.webp"
-    },
-    "avif": {
-      "320": "doce_kitkat-320w.avif",
-      "480": "doce_kitkat-480w.avif",
-      "640": "doce_kitkat-640w.avif",
-      "800": "doce_kitkat-800w.avif",
-      "1024": "doce_kitkat-1024w.avif",
-      "original": "doce_kitkat.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "doce_kitkat-05d1a736",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "doce_ouro": {
-    "original": "doce_ouro.jpg",
-    "webp": {
-      "320": "doce_ouro-320w.webp",
-      "480": "doce_ouro-480w.webp",
-      "640": "doce_ouro-640w.webp",
-      "800": "doce_ouro-800w.webp",
-      "1024": "doce_ouro-1024w.webp",
-      "original": "doce_ouro.webp"
-    },
-    "avif": {
-      "320": "doce_ouro-320w.avif",
-      "480": "doce_ouro-480w.avif",
-      "640": "doce_ouro-640w.avif",
-      "800": "doce_ouro-800w.avif",
-      "1024": "doce_ouro-1024w.avif",
-      "original": "doce_ouro.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "doce_ouro-9349c7cc",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "doce_sonho": {
-    "original": "doce_sonho.jpg",
-    "webp": {
-      "320": "doce_sonho-320w.webp",
-      "480": "doce_sonho-480w.webp",
-      "640": "doce_sonho-640w.webp",
-      "800": "doce_sonho-800w.webp",
-      "1024": "doce_sonho-1024w.webp",
-      "original": "doce_sonho.webp"
-    },
-    "avif": {
-      "320": "doce_sonho-320w.avif",
-      "480": "doce_sonho-480w.avif",
-      "640": "doce_sonho-640w.avif",
-      "800": "doce_sonho-800w.avif",
-      "1024": "doce_sonho-1024w.avif",
-      "original": "doce_sonho.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "doce_sonho-6c70fa83",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "dog": {
-    "original": "dog.jpg",
-    "webp": {
-      "320": "dog-320w.webp",
-      "480": "dog-480w.webp",
-      "640": "dog-640w.webp",
-      "800": "dog-800w.webp",
-      "1024": "dog-1024w.webp",
-      "original": "dog.webp"
-    },
-    "avif": {
-      "320": "dog-320w.avif",
-      "480": "dog-480w.avif",
-      "640": "dog-640w.avif",
-      "800": "dog-800w.avif",
-      "1024": "dog-1024w.avif",
-      "original": "dog.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "dog-4aa8c8d0",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "dog_duplo": {
+    "file": "dog_duplo-d7b48c42",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "dog_lino": {
+    "file": "dog_lino-c7c21724",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "dog_linozao": {
+    "file": "dog_linozao-766b295b",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "dogzao": {
-    "original": "dogzao.jpg",
-    "webp": {
-      "320": "dogzao-320w.webp",
-      "480": "dogzao-480w.webp",
-      "640": "dogzao-640w.webp",
-      "800": "dogzao-800w.webp",
-      "1024": "dogzao-1024w.webp",
-      "original": "dogzao.webp"
-    },
-    "avif": {
-      "320": "dogzao-320w.avif",
-      "480": "dogzao-480w.avif",
-      "640": "dogzao-640w.avif",
-      "800": "dogzao-800w.avif",
-      "1024": "dogzao-1024w.avif",
-      "original": "dogzao.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "dogzao-93b1c589",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "dogzao_duplo": {
+    "file": "dogzao_duplo-8792d81d",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "egg": {
+    "file": "egg-e07ed443",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "eggzao": {
+    "file": "eggzao-bb4d41d0",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "refri_2l": {
-    "original": "refri_2l.jpg",
-    "webp": {
-      "320": "refri_2l-320w.webp",
-      "480": "refri_2l-480w.webp",
-      "640": "refri_2l-640w.webp",
-      "800": "refri_2l-800w.webp",
-      "1024": "refri_2l-1024w.webp",
-      "original": "refri_2l.webp"
-    },
-    "avif": {
-      "320": "refri_2l-320w.avif",
-      "480": "refri_2l-480w.avif",
-      "640": "refri_2l-640w.avif",
-      "800": "refri_2l-800w.avif",
-      "1024": "refri_2l-1024w.avif",
-      "original": "refri_2l.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "refri_2l-43f2314b",
+    "width": 600,
+    "widths": [
+      320,
+      480
+    ]
+  },
+  "refri_600": {
+    "file": "refri_600-b98536d9",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
   "refri_lata": {
-    "original": "refri_lata.jpg",
-    "webp": {
-      "320": "refri_lata-320w.webp",
-      "480": "refri_lata-480w.webp",
-      "640": "refri_lata-640w.webp",
-      "800": "refri_lata-800w.webp",
-      "1024": "refri_lata-1024w.webp",
-      "original": "refri_lata.webp"
-    },
-    "avif": {
-      "320": "refri_lata-320w.avif",
-      "480": "refri_lata-480w.avif",
-      "640": "refri_lata-640w.avif",
-      "800": "refri_lata-800w.avif",
-      "1024": "refri_lata-1024w.avif",
-      "original": "refri_lata.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+    "file": "refri_lata-7ce6d1fd",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   },
-  "suco": {
-    "original": "suco.jpg",
-    "webp": {
-      "320": "suco-320w.webp",
-      "480": "suco-480w.webp",
-      "640": "suco-640w.webp",
-      "800": "suco-800w.webp",
-      "1024": "suco-1024w.webp",
-      "original": "suco.webp"
-    },
-    "avif": {
-      "320": "suco-320w.avif",
-      "480": "suco-480w.avif",
-      "640": "suco-640w.avif",
-      "800": "suco-800w.avif",
-      "1024": "suco-1024w.avif",
-      "original": "suco.avif"
-    },
-    "responsive": [
-      "320w",
-      "480w",
-      "640w",
-      "800w",
-      "1024w"
+  "suco_polpa": {
+    "file": "suco_polpa-6ae33498",
+    "width": 600,
+    "widths": [
+      320,
+      480
     ]
   }
 }

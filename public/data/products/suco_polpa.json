@@ -4,7 +4,7 @@
   "category": "bebidas",
   "price": 9,
   "desc": "Polpa de fruta natural batida na hora: Maracujá, Laranja, Abacaxi ou Morango.",
-  "image": "suco.jpg",
+  "image": "suco_polpa.png",
   "badge": "Fruta Natural",
   "hasExtras": false,
   "order": 200

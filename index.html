@@ -6,7 +6,7 @@
   <title>Universal Prensados | Lanches Prensados Artesanais em Joinville</title>
   <meta name="description" content="Universal Prensados — os melhores lanches prensados artesanais de Joinville. Faça seu pedido online agora mesmo com entrega rápida e pagamento via Pix, Cartão ou Dinheiro!">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#d4380d">
+  <meta name="theme-color" content="#f26a1b">
 
   <!-- FOUC prevention for light/dark mode (loaded as module with CSP nonce) -->
   <script type="module" src="theme-init.js"></script>
@@ -18,10 +18,11 @@
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌭</text></svg>">
+  <link rel="icon" href="images/icon-96.png" type="image/png">
+  <link rel="apple-touch-icon" href="images/icon-192.png">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#d4380d" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0e0c0b" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f26a1b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#070c1c" media="(prefers-color-scheme: dark)">
 
   <!-- Content Security Policy (fallback for static hosting) -->
   <meta http-equiv="Content-Security-Policy" content="
@@ -44,7 +45,7 @@
   <header class="header" id="header">
     <div class="container header__inner">
       <a href="#" class="header__logo" aria-label="Universal Prensados Página Inicial">
-        <img src="https://imagens.multipedidos.com.br/v/240/profiles/7Z5WTHG4JmanVlgBPGxjk9NN5sKW38zduUqMIvUScm3LAiQkBXg6CnOSdRAXyI6Z.webp" alt="Universal Prensados Logo" class="header__logo-img">
+        <img src="images/logo-96.webp" alt="Universal Prensados Logo" class="header__logo-img" width="48" height="48">
         <span class="logo-text">Universal<br><strong>Prensados</strong></span>
       </a>
 
@@ -83,89 +84,103 @@
     </div>
   </header>
 
-  <!-- ====== HERO WITH 3D CANVAS & BADGES ====== -->
+  <!-- ====== HERO ====== -->
   <section class="hero" id="inicio">
-    <!-- 3D Canvas Background & Particles -->
-    <canvas id="hero-3d-canvas" class="hero__canvas" aria-hidden="true"></canvas>
-
-    <div class="hero__overlay"></div>
+    <div class="hero__bg" aria-hidden="true">
+      <div class="hero__blob hero__blob--a"></div>
+      <div class="hero__blob hero__blob--b"></div>
+      <div class="hero__grid"></div>
+    </div>
 
     <div class="container hero__container">
       <div class="hero__content">
-        <div class="hero__status-badge">
+        <div class="hero__status-badge" id="store-status" data-anim="hero-item">
           <span class="status-dot"></span>
-          <span>Aberto Hoje: 19:00 às 23:30 • Entrega em Joinville</span>
+          <span id="store-status-text">Segunda a Sábado • 19:00 às 23:30</span>
         </div>
 
-        <h1 class="hero__title">
-          O Verdadeiro <span class="highlight-gradient">Lanche Prensado</span> de Joinville.
+        <h1 class="hero__title" data-anim="hero-title">
+          O verdadeiro <span class="highlight-gradient">dog prensado</span> de Joinville.
         </h1>
 
-        <p class="hero__subtitle">
-          Pão crocante tostado no capricho, recheios generosos, bacon no ponto certo e molhos artesanais da casa. Faça seu pedido online e receba quentinho na sua porta!
+        <p class="hero__subtitle" data-anim="hero-item">
+          Pão macio prensado na hora, recheio generoso de salsicha, milho, batata palha, bacon e calabresa. Peça online e receba quentinho em casa.
         </p>
 
-        <div class="hero__actions">
-          <a href="#cardapio" class="btn btn--primary btn--large hero__btn-order">
-            <span>🔥 Fazer Pedido Online</span>
+        <div class="hero__actions" data-anim="hero-item">
+          <a href="#cardapio" class="btn btn--primary btn--large hero__btn-order" data-magnetic>
+            <span>Ver Cardápio</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
           <a href="https://wa.me/5547996366274?text=Olá!%20Vim%20pelo%20site%20da%20Universal%20Prensados!" target="_blank" rel="noopener" class="btn btn--glass btn--large">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.12 1.52 5.855L.05 23.5l5.785-1.52A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82a9.78 9.78 0 01-5.09-1.42l-.36-.22-3.75.98.99-3.65-.24-.38A9.79 9.79 0 012.18 12 9.82 9.82 0 0112 2.18 9.82 9.82 0 0121.82 12 9.82 9.82 0 0112 21.82z"/></svg>
-            <span>Falar no WhatsApp</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.553 4.12 1.52 5.855L.05 23.5l5.785-1.52A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82a9.78 9.78 0 01-5.09-1.42l-.36-.22-3.75.98.99-3.650-.24-.38A9.790 9.790 0 012.18 12 9.82 9.82 0 0112 2.18 9.82 9.82 0 0121.82 12 9.82 9.82 0 0112 21.82z"/></svg>
+            <span>WhatsApp</span>
           </a>
         </div>
 
-        <!-- 3D Stat Cards -->
-        <div class="hero__stats">
-          <div class="stat-card" data-tilt>
-            <span class="stat-card__number">4.8 <span class="stat-card__icon">⭐</span></span>
-            <span class="stat-card__label">Nota de Avaliação no Google</span>
+        <div class="hero__stats" data-anim="hero-item">
+          <div class="stat-card">
+            <span class="stat-card__number"><span data-count="5" data-decimals="1">5.0</span> <span class="stat-card__icon">⭐</span></span>
+            <span class="stat-card__label">Nota no Pedir.Delivery</span>
           </div>
-          <div class="stat-card" data-tilt>
-            <span class="stat-card__number">30-45<span class="stat-card__unit">min</span></span>
-            <span class="stat-card__label">Tempo Médio de Entrega</span>
+          <div class="stat-card">
+            <span class="stat-card__number"><span data-count="30">30</span>–<span data-count="55">55</span><span class="stat-card__unit">min</span></span>
+            <span class="stat-card__label">Tempo de entrega</span>
           </div>
-          <div class="stat-card" data-tilt>
-            <span class="stat-card__number">100%</span>
-            <span class="stat-card__label">Artesanal & Feito na Hora</span>
+          <div class="stat-card">
+            <span class="stat-card__number"><span data-count="25" id="stat-products">25</span><span class="stat-card__unit">opções</span></span>
+            <span class="stat-card__label">Dogs, combos e bebidas</span>
           </div>
         </div>
       </div>
 
-      <!-- Hero 3D Interactive Floating Showcase Card -->
-      <div class="hero__visual" data-tilt>
-        <div class="hero-3d-card">
-          <div class="hero-3d-card__glow"></div>
-          <div class="hero-3d-card__badge">⭐ O Mais Pedido</div>
-          <picture>
-            <source type="image/avif" srcset="
-              images/optimized/dogzao-320w.avif 320w,
-              images/optimized/dogzao-480w.avif 480w,
-              images/optimized/dogzao-640w.avif 640w,
-              images/optimized/dogzao-800w.avif 800w,
-              images/optimized/dogzao-1024w.avif 1024w" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
-            <source type="image/webp" srcset="
-              images/optimized/dogzao-320w.webp 320w,
-              images/optimized/dogzao-480w.webp 480w,
-              images/optimized/dogzao-640w.webp 640w,
-              images/optimized/dogzao-800w.webp 800w,
-              images/optimized/dogzao-1024w.webp 1024w" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
-            <img src="images/optimized/dogzao.webp" alt="Dogzão Especial Prensado Oficial" class="hero-3d-card__img" fetchpriority="high" width="400" height="300" loading="eager">
+      <!-- Vitrine animada com os lanches reais da casa -->
+      <div class="hero__visual">
+        <div class="hero-stage" id="hero-stage">
+          <div class="hero-stage__ring" aria-hidden="true"></div>
+          <div class="hero-stage__glow" aria-hidden="true"></div>
+
+          <picture class="hero-stage__side hero-stage__side--a" data-depth="0.6">
+            <source type="image/avif" srcset="images/optimized/cut_chicken-320w.avif 320w, images/optimized/cut_chicken.avif 593w" sizes="220px">
+            <img src="images/optimized/cut_chicken-320w.webp" srcset="images/optimized/cut_chicken-320w.webp 320w, images/optimized/cut_chicken.webp 593w" sizes="220px" alt="" width="593" height="575" decoding="async">
           </picture>
-          <div class="hero-3d-card__body">
-            <div class="hero-3d-card__header">
-              <h3>Dogzão Especial</h3>
-              <span class="price-pill">R$ 17,00</span>
-            </div>
-            <p>Pão artesanal crocante prensado, milho, batata palha, salsicha, bacon crocante, calabresa defumada e maionese secreta da casa.</p>
-            <button class="btn btn--primary btn--full add-to-cart-direct" data-item-id="dogzao">
-              <span>+ Adicionar ao Pedido</span>
-            </button>
+
+          <picture class="hero-stage__main" data-depth="1">
+            <source type="image/avif" srcset="images/optimized/cut_dogzao-320w.avif 320w, images/optimized/cut_dogzao-480w.avif 480w, images/optimized/cut_dogzao.avif 568w" sizes="(max-width: 900px) 80vw, 520px">
+            <img src="images/optimized/cut_dogzao.webp" srcset="images/optimized/cut_dogzao-320w.webp 320w, images/optimized/cut_dogzao-480w.webp 480w, images/optimized/cut_dogzao.webp 568w" sizes="(max-width: 900px) 80vw, 520px" alt="Dogzão prensado com bacon e calabresa" width="568" height="293" fetchpriority="high">
+          </picture>
+
+          <picture class="hero-stage__side hero-stage__side--b" data-depth="0.4">
+            <source type="image/avif" srcset="images/optimized/cut_dog-320w.avif 320w, images/optimized/cut_dog.avif 589w" sizes="240px">
+            <img src="images/optimized/cut_dog-320w.webp" srcset="images/optimized/cut_dog-320w.webp 320w, images/optimized/cut_dog.webp 589w" sizes="240px" alt="" width="589" height="274" decoding="async">
+          </picture>
+
+          <!-- Ingredientes flutuando -->
+          <svg class="hero-ing hero-ing--corn1" data-depth="1.4" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="12" ry="15" fill="#facc15"/><ellipse cx="16" cy="14" rx="4" ry="5" fill="#fef08a"/></svg>
+          <svg class="hero-ing hero-ing--corn2" data-depth="1.1" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11" ry="14" fill="#fbbf24"/><ellipse cx="16" cy="14" rx="4" ry="5" fill="#fef3c7"/></svg>
+          <svg class="hero-ing hero-ing--bacon" data-depth="1.6" viewBox="0 0 80 40" aria-hidden="true"><path d="M4 22 Q14 8 24 20 T44 20 T64 20 T78 16 L76 26 Q66 36 56 26 T36 26 T16 28 T4 32 Z" fill="#9b2c1a"/><path d="M8 24 Q16 16 24 23 T42 23 T60 23" stroke="#f3b69b" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+          <svg class="hero-ing hero-ing--palha" data-depth="1.3" viewBox="0 0 60 60" aria-hidden="true"><g stroke="#f5b041" stroke-width="4" stroke-linecap="round"><path d="M10 50 L34 8"/><path d="M22 54 L50 20"/><path d="M6 30 L46 40"/></g></svg>
+          <svg class="hero-ing hero-ing--ketchup" data-depth="1.8" viewBox="0 0 40 50" aria-hidden="true"><path d="M20 2 C30 18 36 26 36 34 A16 16 0 0 1 4 34 C4 26 10 18 20 2 Z" fill="#dc2626"/><ellipse cx="14" cy="32" rx="4" ry="6" fill="#fca5a5" opacity=".7"/></svg>
+
+          <div class="hero-stage__tag" data-depth="0.8">
+            <span class="hero-stage__tag-badge">⭐ O mais pedido</span>
+            <strong>Dogzão</strong>
+            <span class="hero-stage__tag-price">R$ 17,00</span>
+            <button class="hero-stage__tag-btn add-to-cart-direct" data-item-id="dogzao" aria-label="Adicionar Dogzão ao pedido">+</button>
           </div>
         </div>
       </div>
     </div>
+
+    <a href="#cardapio" class="hero__scroll" aria-label="Rolar para o cardápio"><span></span></a>
   </section>
+
+  <!-- ====== FAIXA ANIMADA ====== -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>🌭 Dog</span><span>Dogzão</span><span>🍗 Chicken</span><span>Chickão</span><span>🧀 Cheese</span><span>🍳 Egg</span><span>Eggzão</span><span>🍫 Kit Kat</span><span>📦 Combos</span><span>🛵 Entrega em Joinville</span>
+    </div>
+  </div>
 
   <!-- ====== PROMO CUPOM BANNER ====== -->
   <div class="coupon-banner">
@@ -267,19 +282,8 @@
         <div class="about-visual-3d">
           <div class="visual-card visual-card--banner" data-tilt>
             <picture>
-              <source type="image/avif" srcset="
-                images/optimized/combo_familia-320w.avif 320w,
-                images/optimized/combo_familia-480w.avif 480w,
-                images/optimized/combo_familia-640w.avif 640w,
-                images/optimized/combo_familia-800w.avif 800w,
-                images/optimized/combo_familia-1024w.avif 1024w" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
-              <source type="image/webp" srcset="
-                images/optimized/combo_familia-320w.webp 320w,
-                images/optimized/combo_familia-480w.webp 480w,
-                images/optimized/combo_familia-640w.webp 640w,
-                images/optimized/combo_familia-800w.webp 800w,
-                images/optimized/combo_familia-1024w.webp 1024w" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
-              <img src="images/optimized/combo_familia.webp" alt="Combos e Prensados Artesanais" class="visual-card__cover-img" width="400" height="300" loading="lazy">
+              <source type="image/avif" srcset="images/optimized/combo_familia-320w.avif 320w, images/optimized/combo_familia-480w.avif 480w, images/optimized/combo_familia.avif 600w" sizes="(max-width: 900px) 92vw, 480px">
+              <img src="images/optimized/combo_familia.webp" srcset="images/optimized/combo_familia-320w.webp 320w, images/optimized/combo_familia-480w.webp 480w, images/optimized/combo_familia.webp 600w" sizes="(max-width: 900px) 92vw, 480px" alt="Combo Família: 4 dogs prensados, batata e Coca-Cola 2L" class="visual-card__cover-img" width="600" height="600" loading="lazy" decoding="async">
             </picture>
             <div class="visual-card__overlay-content">
               <h3>Combos e Prensados</h3>
@@ -409,7 +413,7 @@
     <div class="container footer__inner">
       <div class="footer__brand">
         <a href="#" class="header__logo">
-          <img src="https://imagens.multipedidos.com.br/v/240/profiles/7Z5WTHG4JmanVlgBPGxjk9NN5sKW38zduUqMIvUScm3LAiQkBXg6CnOSdRAXyI6Z.webp" alt="Universal Prensados Logo" class="header__logo-img">
+          <img src="images/logo-96.webp" alt="Universal Prensados Logo" class="header__logo-img" width="48" height="48">
           <span class="logo-text">Universal<br><strong>Prensados</strong></span>
         </a>
         <p>Lanches prensados artesanais de alto padrão em Joinville. Qualidade, sabor e crocância do primeiro ao último pedaço.</p>

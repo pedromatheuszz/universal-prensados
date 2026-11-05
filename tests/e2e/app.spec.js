@@ -13,7 +13,7 @@ test.describe('Universal Prensados - Core Functionality', () => {
 
   test('should load homepage successfully', async ({ page }) => {
     await expect(page).toHaveTitle(/Universal Prensados/);
-    await expect(page.locator('h1')).toContainText('Lanche Prensado');
+    await expect(page.locator('h1')).toContainText('dog prensado');
   });
 
   test('should have working navigation', async ({ page }) => {
@@ -28,11 +28,11 @@ test.describe('Universal Prensados - Core Functionality', () => {
     await expect(page.locator('nav a[href="#contato"]')).toBeVisible();
   });
 
-  test('should display hero section with 3D canvas', async ({ page }) => {
-    const canvas = page.locator('#hero-3d-canvas');
-    await expect(canvas).toBeVisible();
-    await expect(canvas).toHaveAttribute('width');
-    await expect(canvas).toHaveAttribute('height');
+  test('should display hero showcase with real product photos', async ({ page }) => {
+    const main = page.locator('.hero-stage__main img');
+    await expect(main).toBeVisible();
+    await expect.poll(() => main.evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+    await expect(page.locator('#store-status-text')).toHaveText(/Aberto|Fechado/);
   });
 
   test('should display product categories tabs', async ({ page }) => {
@@ -51,8 +51,8 @@ test.describe('Universal Prensados - Core Functionality', () => {
     // Wait for products to render
     await page.waitForTimeout(500);
     
-    // Should show Chicken Especial and Chickão
-    await expect(page.locator('.product-card')).toHaveCount(2);
+    // Chicken, Chickão, Egg e Eggzão
+    await expect(page.locator('.product-card:visible')).toHaveCount(4);
   });
 
   test('should open cart drawer when clicking cart button', async ({ page }) => {

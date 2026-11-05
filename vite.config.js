@@ -1,8 +1,23 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import fs from 'fs';
+
+// Troca as referências fixas do index.html (ex.: images/optimized/cut_dogzao-320w.webp)
+// pelos nomes com hash gerados por scripts/optimize-images.js
+function optimizedImagesInHtml() {
+  return {
+    name: 'optimized-images-html',
+    transformIndexHtml(html) {
+      const map = JSON.parse(fs.readFileSync('public/images/optimized/image-map.json', 'utf8'));
+      return html.replace(/images\/optimized\/([a-z0-9_]+?)(-\d+w)?\.(webp|avif)/g, (match, name, size = '', ext) =>
+        map[name] ? `images/optimized/${map[name].file}${size}.${ext}` : match);
+    },
+  };
+}
 
 export default defineConfig({
   root: '.',
+  plugins: [optimizedImagesInHtml()],
   publicDir: 'public',
   build: {
     outDir: 'dist',
@@ -29,7 +44,7 @@ export default defineConfig({
       output: {
         // Code splitting strategy
         manualChunks: {
-          'vendor-three': ['three'],
+          'vendor-gsap': ['gsap', 'gsap/ScrollTrigger', 'gsap/SplitText'],
         },
         // Asset naming with hashes for cache busting
         assetFileNames: (assetInfo) => {
@@ -62,7 +77,7 @@ export default defineConfig({
   },
   // Optimize dependencies
   optimizeDeps: {
-    include: ['three'],
+    include: ['gsap'],
     exclude: [],
   },
   // Server configuration for development

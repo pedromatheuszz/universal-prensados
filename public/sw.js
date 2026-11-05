@@ -1,13 +1,13 @@
 /**
  * Universal Prensados - Service Worker
- * Versão: 1.1.0
+ * Versão: 1.2.0
  * Estratégia: Cache First para assets estáticos, Network First para dados dinâmicos
  */
 
-const CACHE_NAME = 'universal-prensados-v1.1.0';
-const STATIC_CACHE = 'universal-prensados-static-v1.1.0';
-const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.1.0';
-const IMAGE_CACHE = 'universal-prensados-images-v1.1.0';
+const CACHE_NAME = 'universal-prensados-v1.2.0';
+const STATIC_CACHE = 'universal-prensados-static-v1.2.0';
+const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.2.0';
+const IMAGE_CACHE = 'universal-prensados-images-v1.2.0';
 
 // Assets essenciais para funcionamento offline.
 // JS/CSS gerados pelo Vite têm hash no nome e entram no cache na primeira visita.
@@ -16,8 +16,6 @@ const CORE_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/images/icon-192.png',
-  '/images/optimized/dogzao.webp',
-  '/images/optimized/dog.webp',
 ];
 
 // Instalação do Service Worker

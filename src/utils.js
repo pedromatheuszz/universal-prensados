@@ -1,7 +1,6 @@
 // Funções puras compartilhadas (sem dependência de DOM) — cobertas por tests/unit.test.js
 
-const RESPONSIVE_WIDTHS = [320, 480, 640, 800, 1024];
-const CARD_SIZES = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
+const CARD_SIZES = '(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 300px';
 
 export function formatBRL(value) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -25,25 +24,28 @@ export function normalizeStr(str) {
     .replace(/[^a-z0-9]/g, '');
 }
 
-function srcset(key, ext) {
-  return RESPONSIVE_WIDTHS.map(w => `images/optimized/${key}-${w}w.${ext} ${w}w`).join(', ');
+// Larguras geradas por scripts/optimize-images.js: `${key}-${w}w.ext` e o original `${key}.ext`
+export function srcset(image, ext) {
+  const entries = (image.widths || []).map(w => `images/optimized/${image.key}-${w}w.${ext} ${w}w`);
+  if (image.width) entries.push(`images/optimized/${image.key}.${ext} ${image.width}w`);
+  return entries.join(', ');
 }
 
 // `image` vem do catálogo: { key } para imagens otimizadas ou { src } para uploads do CMS
-export function createOptimizedPicture(image, alt, className = '', fetchPriority = '') {
+export function createOptimizedPicture(image, alt, className = '', fetchPriority = '', sizes = CARD_SIZES) {
   const altAttr = escapeHTML(alt);
   const classAttr = escapeHTML(className);
   const priorityAttr = fetchPriority ? ` fetchpriority="${escapeHTML(fetchPriority)}"` : '';
 
   if (!image?.key) {
-    return `<img src="${escapeHTML(image?.src || '')}" alt="${altAttr}" class="${classAttr}"${priorityAttr} loading="lazy">`;
+    return `<img src="${escapeHTML(image?.src || '')}" alt="${altAttr}" class="${classAttr}"${priorityAttr} loading="lazy" decoding="async">`;
   }
 
   return `
     <picture>
-      <source type="image/avif" srcset="${srcset(image.key, 'avif')}" sizes="${CARD_SIZES}">
-      <source type="image/webp" srcset="${srcset(image.key, 'webp')}" sizes="${CARD_SIZES}">
-      <img src="images/optimized/${image.key}.webp" alt="${altAttr}" class="${classAttr}"${priorityAttr} loading="lazy" width="400" height="300">
+      <source type="image/avif" srcset="${srcset(image, 'avif')}" sizes="${sizes}">
+      <source type="image/webp" srcset="${srcset(image, 'webp')}" sizes="${sizes}">
+      <img src="images/optimized/${image.key}.webp" alt="${altAttr}" class="${classAttr}"${priorityAttr} loading="${fetchPriority === 'high' ? 'eager' : 'lazy'}" decoding="async" width="600" height="600">
     </picture>
   `;
 }
@@ -53,6 +55,37 @@ export function createOptimizedImageTag(image) {
   if (!image?.key) return { src: image?.src || '', srcsetWebp: '' };
   return {
     src: `images/optimized/${image.key}.webp`,
-    srcsetWebp: srcset(image.key, 'webp'),
+    srcsetWebp: srcset(image, 'webp'),
   };
+}
+
+// Horário de funcionamento: segunda a sábado, 19:00–23:30 (horário de Brasília)
+const OPEN_DAYS = [1, 2, 3, 4, 5, 6];
+const OPEN_MIN = 19 * 60;
+const CLOSE_MIN = 23 * 60 + 30;
+const WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+function saoPauloParts(date) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+      .formatToParts(date).map(p => [p.type, p.value])
+  );
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.weekday);
+  return { day, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
+}
+
+export function getStoreStatus(date) {
+  const { day, minutes } = saoPauloParts(date);
+  const openToday = OPEN_DAYS.includes(day);
+
+  if (openToday && minutes >= OPEN_MIN && minutes < CLOSE_MIN) {
+    return { open: true, label: 'Aberto agora • Pedidos até 23:30' };
+  }
+  if (openToday && minutes < OPEN_MIN) {
+    return { open: false, label: 'Fechado • Abrimos hoje às 19:00' };
+  }
+  let next = (day + 1) % 7;
+  while (!OPEN_DAYS.includes(next)) next = (next + 1) % 7;
+  const when = next === (day + 1) % 7 ? 'amanhã' : WEEKDAYS[next];
+  return { open: false, label: `Fechado • Abrimos ${when} às 19:00` };
 }

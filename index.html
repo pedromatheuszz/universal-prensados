@@ -642,17 +642,6 @@
               <label for="order-district">Bairro de Joinville *</label>
               <select id="order-district" required disabled>
                 <option value="" disabled selected>Selecione seu bairro... (ou digite o CEP)</option>
-                <option value="Jarivatuba" data-fee="4.00">Jarivatuba (Taxa: R$ 4,00)</option>
-                <option value="João Costa" data-fee="4.00">João Costa (Taxa: R$ 4,00)</option>
-                <option value="Guanabara" data-fee="5.00">Guanabara (Taxa: R$ 5,00)</option>
-                <option value="Fátima" data-fee="5.00">Fátima (Taxa: R$ 5,00)</option>
-                <option value="Itaum" data-fee="6.00">Itaum (Taxa: R$ 6,00)</option>
-                <option value="Paranaguamirim" data-fee="6.00">Paranaguamirim (Taxa: R$ 6,00)</option>
-                <option value="Boehmerwald" data-fee="7.00">Boehmerwald (Taxa: R$ 7,00)</option>
-                <option value="Bucarein" data-fee="7.00">Bucarein (Taxa: R$ 7,00)</option>
-                <option value="Floresta" data-fee="7.00">Floresta (Taxa: R$ 7,00)</option>
-                <option value="Centro" data-fee="8.00">Centro (Taxa: R$ 8,00)</option>
-                <option value="Outro Bairro" data-fee="8.00">Outro Bairro de Joinville (Taxa: R$ 8,00)</option>
               </select>
             </div>
 
@@ -848,38 +837,6 @@
   <script type="module" src="script.js"></script>
 
   <!-- Service Worker Registration -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then((registration) => {
-            console.log('[SW] Service Worker registrado com sucesso:', registration.scope);
-            
-            // Verificar atualizações periodicamente
-            setInterval(() => {
-              registration.update();
-            }, 60 * 60 * 1000); // A cada hora
-            
-            // Notificar usuário sobre nova versão
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Nova versão disponível
-                    if (confirm('Uma nova versão do site está disponível. Atualizar agora?')) {
-                      window.location.reload();
-                    }
-                  }
-                });
-              }
-            });
-          })
-          .catch((error) => {
-            console.error('[SW] Falha no registro do Service Worker:', error);
-          });
-      });
-    }
-  </script>
+  <script type="module" src="src/sw-register.js"></script>
 </body>
 </html>

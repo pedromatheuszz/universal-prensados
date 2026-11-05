@@ -2,9 +2,10 @@
   "id": "dog",
   "name": "1. Dog Tradicional",
   "category": "salgados",
-  "price": 11.50,
+  "price": 11.5,
   "desc": "Pão prensado crocante, milho, batata palha, catchup, maionese e salsicha.",
   "image": "dog.jpg",
   "badge": "Clássico",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 10
 }

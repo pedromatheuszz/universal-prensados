@@ -6,5 +6,6 @@
   "desc": "Garrafa individual de 600ml estupidamente gelada.",
   "image": "refri_lata.jpg",
   "badge": "",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 180
 }

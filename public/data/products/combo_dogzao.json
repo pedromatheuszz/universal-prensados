@@ -6,5 +6,6 @@
   "desc": "1 Dogzão Grande bem recheado + Batata frita crocante de 150g + 1 Refrigerante lata geladinho.",
   "image": "combo_dogzao.jpg",
   "badge": "🔥 Top Vendas",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 110
 }

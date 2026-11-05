@@ -6,5 +6,6 @@
   "desc": "Pão prensado douradinho com creme de leite suave e bombons Ouro Branco cremosos.",
   "image": "doce_ouro.jpg",
   "badge": "Delicioso",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 150
 }

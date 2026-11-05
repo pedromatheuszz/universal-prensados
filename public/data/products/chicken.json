@@ -6,5 +6,6 @@
   "desc": "Pão prensado na hora, milho, batata palha, salsicha, frango desfiado artesanal suculento e maionese da casa.",
   "image": "chicken.jpg",
   "badge": "⭐ Favorito",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 80
 }

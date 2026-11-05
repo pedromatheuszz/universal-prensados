@@ -8,8 +8,8 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 
-const IMAGES_DIR = 'images';
-const OUTPUT_DIR = 'images/optimized';
+const IMAGES_DIR = 'images-src';
+const OUTPUT_DIR = 'public/images/optimized';
 
 // Responsive breakpoints (widths)
 const SIZES = [320, 480, 640, 800, 1024, 1280, 1600];
@@ -120,7 +120,7 @@ async function generatePictureElements(optimizationResults) {
     JSON.stringify(map, null, 2)
   );
   
-  console.log('\n📄 Mapa de imagens salvo em images/optimized/image-map.json');
+  console.log('\n📄 Mapa de imagens salvo em public/images/optimized/image-map.json');
 }
 
 async function main() {

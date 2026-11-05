@@ -2457,6 +2457,27 @@ button, input, select, textarea {
     display: flex;
   }
 
+  /* Em telas pequenas o total aparece na barra inferior do carrinho */
+  .cart-trigger-btn__price {
+    display: none;
+  }
+
+  .header__inner {
+    gap: 0.5rem;
+  }
+
+  .header__actions {
+    gap: 0.4rem;
+  }
+
+  .cart-trigger-btn {
+    padding-inline: 0.6rem;
+  }
+
+  .logo-text {
+    font-size: 0.75rem;
+  }
+
   .hero__stats {
     grid-template-columns: 1fr;
   }

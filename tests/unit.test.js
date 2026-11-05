@@ -1,194 +1,166 @@
 /**
- * Unit Tests for Currency Formatting
+ * Testes unitários das funções puras usadas pelo site (src/utils.js e src/pricing.js)
+ * e validação do catálogo gerado a partir do CMS.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Since we can't easily import the functions from script.js due to DOM dependencies,
-// we'll test the pure functions by re-implementing them here
-// In a real project, you'd extract pure functions to separate modules
+import { describe, it, expect } from 'vitest';
+import { execSync } from 'child_process';
+import fs from 'fs';
+import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag } from '../src/utils.js';
+import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../src/pricing.js';
 
 describe('formatBRL', () => {
-  // Re-implement the function for testing
-  function formatBRL(value) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  it('formats positive numbers correctly', () => {
-    expect(formatBRL(10)).toBe('R$\u00A010,00');
-    expect(formatBRL(10.5)).toBe('R$\u00A010,50');
-    expect(formatBRL(1000)).toBe('R$\u00A01.000,00');
-    expect(formatBRL(1234.56)).toBe('R$\u00A01.234,56');
+  it('formata valores em reais', () => {
+    expect(formatBRL(10)).toBe('R$ 10,00');
+    expect(formatBRL(10.5)).toBe('R$ 10,50');
+    expect(formatBRL(1234.56)).toBe('R$ 1.234,56');
+    expect(formatBRL(0)).toBe('R$ 0,00');
   });
 
-  it('formats zero correctly', () => {
-    expect(formatBRL(0)).toBe('R$\u00A00,00');
-  });
-
-  it('formats decimal numbers with proper rounding', () => {
-    expect(formatBRL(10.999)).toBe('R$\u00A011,00');
-    expect(formatBRL(10.001)).toBe('R$\u00A010,00');
+  it('arredonda para centavos', () => {
+    expect(formatBRL(10.999)).toBe('R$ 11,00');
+    expect(formatBRL(10.001)).toBe('R$ 10,00');
   });
 });
 
-describe('Cart Calculations', () => {
-  // Test cart utility functions
-  function getCartSubtotal(cart) {
-    return cart.reduce((sum, item) => sum + (item.unitPrice * item.qty), 0);
-  }
+describe('escapeHTML', () => {
+  it('neutraliza tags e aspas', () => {
+    expect(escapeHTML('<img src=x onerror="alert(1)">')).toBe('&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+    expect(escapeHTML("O'Neil & Cia")).toBe('O&#39;Neil &amp; Cia');
+  });
 
-  function getCartDiscount(cart, appliedCoupon) {
-    if (!appliedCoupon) return 0;
-    const subtotal = getCartSubtotal(cart);
-    return (subtotal * appliedCoupon.discountPercent) / 100;
-  }
+  it('aceita valores não-string', () => {
+    expect(escapeHTML(null)).toBe('');
+    expect(escapeHTML(12)).toBe('12');
+  });
+});
 
-  function getCartTotal(cart, appliedCoupon) {
-    const subtotal = getCartSubtotal(cart);
-    const discount = getCartDiscount(cart, appliedCoupon);
-    return Math.max(0, subtotal - discount);
-  }
+describe('imagens', () => {
+  it('gera <picture> responsivo para imagens otimizadas', () => {
+    const html = createOptimizedPicture({ key: 'dog' }, 'Dog "Tradicional"', 'thumb');
+    expect(html).toContain('images/optimized/dog-320w.avif 320w');
+    expect(html).toContain('src="images/optimized/dog.webp"');
+    expect(html).toContain('alt="Dog &quot;Tradicional&quot;"');
+  });
 
-  const mockCart = [
-    { id: 'dog', name: 'Dog Tradicional', unitPrice: 11.50, qty: 2 },
-    { id: 'chicken', name: 'Chicken Especial', unitPrice: 17.00, qty: 1 },
+  it('usa o caminho original (escapado) para uploads do CMS', () => {
+    const html = createOptimizedPicture({ src: '/images/uploads/a"b.jpg' }, 'x');
+    expect(html).toContain('src="/images/uploads/a&quot;b.jpg"');
+    expect(html).not.toContain('<picture>');
+  });
+
+  it('monta a imagem do modal', () => {
+    expect(createOptimizedImageTag({ key: 'agua' }).src).toBe('images/optimized/agua.webp');
+    expect(createOptimizedImageTag({ src: '/x.jpg' })).toEqual({ src: '/x.jpg', srcsetWebp: '' });
+  });
+});
+
+describe('cálculos do pedido', () => {
+  const cart = [
+    { unitPrice: 15, qty: 2 },
+    { unitPrice: 10.1, qty: 3 },
   ];
 
-  it('calculates subtotal correctly', () => {
-    expect(getCartSubtotal(mockCart)).toBe(40.00); // 11.50 * 2 + 17.00 * 1
+  it('soma o subtotal sem erro de ponto flutuante', () => {
+    expect(calcSubtotal(cart)).toBe(60.3);
+    expect(calcSubtotal([])).toBe(0);
   });
 
-  it('calculates discount correctly with 10% coupon', () => {
-    const coupon = { code: 'BEMVINDO10', discountPercent: 10 };
-    expect(getCartDiscount(mockCart, coupon)).toBe(4.00); // 10% of 40.00
+  it('aplica desconto percentual', () => {
+    expect(calcDiscount(100, { discountPercent: 10 })).toBe(10);
+    expect(calcDiscount(100, null)).toBe(0);
   });
 
-  it('calculates total with discount', () => {
-    const coupon = { code: 'BEMVINDO10', discountPercent: 10 };
-    expect(getCartTotal(mockCart, coupon)).toBe(36.00); // 40.00 - 4.00
+  it('calcula a taxa de entrega com frete grátis acima do mínimo', () => {
+    const base = { isDelivery: true, districtFee: 6, freeShippingThreshold: 70 };
+    expect(calcDeliveryFee({ ...base, subtotal: 50 })).toBe(6);
+    expect(calcDeliveryFee({ ...base, subtotal: 70 })).toBe(0);
+    expect(calcDeliveryFee({ ...base, isDelivery: false, subtotal: 10 })).toBe(0);
   });
 
-  it('returns 0 discount when no coupon applied', () => {
-    expect(getCartDiscount(mockCart, null)).toBe(0);
+  it('nunca retorna total negativo', () => {
+    expect(calcTotal({ subtotal: 50, discount: 5, fee: 4 })).toBe(49);
+    expect(calcTotal({ subtotal: 10, discount: 20 })).toBe(0);
   });
 
-  it('handles empty cart', () => {
-    expect(getCartSubtotal([])).toBe(0);
-    expect(getCartTotal([], { discountPercent: 10 })).toBe(0);
+  it('encontra cupons ignorando maiúsculas e espaços', () => {
+    const coupons = [{ code: 'BEMVINDO10', discountPercent: 10 }];
+    expect(findCoupon(' bemvindo10 ', coupons)).toEqual(coupons[0]);
+    expect(findCoupon('FALSO', coupons)).toBeNull();
+    expect(findCoupon('', coupons)).toBeNull();
   });
 });
 
-describe('CEP Validation', () => {
-  function formatCEP(value) {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length > 5) {
-      return digits.slice(0, 5) + '-' + digits.slice(5, 8);
+describe('repriceCart', () => {
+  const products = new Map([
+    ['dog', { id: 'dog', name: 'Dog', category: 'salgados', price: 11.5, image: { key: 'dog' }, hasExtras: true }],
+    ['agua', { id: 'agua', name: 'Água', category: 'bebidas', price: 4.5, image: { key: 'agua' }, hasExtras: false }],
+  ]);
+  const extras = new Map([['Bacon Crocante', { name: 'Bacon Crocante', price: 3.5 }]]);
+
+  it('ignora preços adulterados no localStorage', () => {
+    const [item] = repriceCart([{ id: 'dog', qty: 2, unitPrice: 0.01, basePrice: 0.01, name: '<script>', extras: [{ name: 'Bacon Crocante', price: 0 }] }], products, extras);
+    expect(item.unitPrice).toBe(15);
+    expect(item.name).toBe('Dog');
+    expect(item.extras).toEqual([{ name: 'Bacon Crocante', price: 3.5 }]);
+  });
+
+  it('descarta produtos inexistentes, adicionais desconhecidos e quantidades inválidas', () => {
+    const result = repriceCart([
+      { id: 'sumiu', qty: 1 },
+      { id: 'dog', qty: 0 },
+      { id: 'dog', qty: -3 },
+      { id: 'dog', qty: 1, extras: [{ name: 'Caviar', price: 1 }] },
+    ], products, extras);
+    expect(result).toHaveLength(1);
+    expect(result[0].extras).toEqual([]);
+  });
+
+  it('não aplica adicionais em produtos sem personalização', () => {
+    const [item] = repriceCart([{ id: 'agua', qty: 1, extras: [{ name: 'Bacon Crocante' }] }], products, extras);
+    expect(item.unitPrice).toBe(4.5);
+  });
+
+  it('tolera dados corrompidos', () => {
+    expect(repriceCart(null, products, extras)).toEqual([]);
+    expect(repriceCart([null, 'x'], products, extras)).toEqual([]);
+  });
+});
+
+describe('normalizeStr / bairros', () => {
+  it('casa nomes do ViaCEP com os slugs do CMS', () => {
+    expect(normalizeStr('João Costa')).toBe(normalizeStr('joao costa'));
+    expect(normalizeStr('Fátima')).toBe('fatima');
+  });
+});
+
+describe('catálogo gerado do CMS', () => {
+  execSync('node scripts/build-catalog.js', { stdio: 'pipe' });
+  const catalog = JSON.parse(fs.readFileSync('src/generated/catalog.json', 'utf8'));
+
+  it('tem produtos válidos e ordenados', () => {
+    expect(catalog.products.length).toBeGreaterThan(0);
+    const ids = new Set();
+    for (const p of catalog.products) {
+      expect(p.id).toMatch(/^[a-z0-9_]+$/);
+      expect(ids.has(p.id)).toBe(false);
+      ids.add(p.id);
+      expect(p.price).toBeGreaterThanOrEqual(0);
+      expect(p.image.key || p.image.src).toBeTruthy();
     }
-    return digits;
-  }
-
-  function isValidCEP(cep) {
-    return /^\d{5}-?\d{3}$/.test(cep);
-  }
-
-  it('formats CEP correctly', () => {
-    expect(formatCEP('89200000')).toBe('89200-000');
-    expect(formatCEP('89200-000')).toBe('89200-000');
-    expect(formatCEP('89.200-000')).toBe('89200-000');
+    const orders = catalog.products.map(p => p.order);
+    expect(orders).toEqual([...orders].sort((a, b) => a - b));
   });
 
-  it('validates correct CEP format', () => {
-    expect(isValidCEP('89200-000')).toBe(true);
-    expect(isValidCEP('89200000')).toBe(true);
+  it('usa imagens otimizadas que existem em disco', () => {
+    for (const p of catalog.products.filter(p => p.image.key)) {
+      expect(fs.existsSync(`public/images/optimized/${p.image.key}.webp`)).toBe(true);
+    }
   });
 
-  it('rejects invalid CEP format', () => {
-    expect(isValidCEP('8920-000')).toBe(false);
-    expect(isValidCEP('abc')).toBe(false);
-    expect(isValidCEP('')).toBe(false);
-  });
-});
-
-describe('District Matching', () => {
-  const JOINVILLE_DISTRICTS = {
-    'jarivatuba': 'Jarivatuba',
-    'joao costa': 'João Costa',
-    'guanabara': 'Guanabara',
-    'fatima': 'Fátima',
-    'itaum': 'Itaum',
-    'paranaguamirim': 'Paranaguamirim',
-    'boehmerwald': 'Boehmerwald',
-    'bucarein': 'Bucarein',
-    'floresta': 'Floresta',
-    'centro': 'Centro'
-  };
-
-  function normalizeStr(str) {
-    return str.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-  }
-
-  function findMatchingDistrict(bairro) {
-    const normalizedBairro = normalizeStr(bairro);
-    return JOINVILLE_DISTRICTS[normalizedBairro] || null;
-  }
-
-  it('matches districts correctly (without spaces in normalized key)', () => {
-    // Note: normalizeStr removes spaces, so keys should be without spaces
-    // This test reflects the current behavior - keys need to match normalized form
-    expect(findMatchingDistrict('Jarivatuba')).toBe('Jarivatuba');
-    expect(findMatchingDistrict('JARIVATUBA')).toBe('Jarivatuba');
-    expect(findMatchingDistrict('jarivatuba')).toBe('Jarivatuba');
-  });
-
-  it('handles accents correctly (spaces removed in normalization)', () => {
-    // Current implementation removes spaces, so 'joao costa' -> 'joaocosta'
-    // This test shows expected behavior if keys were updated
-    expect(findMatchingDistrict('João Costa')).toBeNull(); // Current behavior: returns null due to space removal
-    expect(findMatchingDistrict('joao costa')).toBeNull(); // Current behavior
-    expect(findMatchingDistrict('Fátima')).toBe('Fátima');
-    expect(findMatchingDistrict('fatima')).toBe('Fátima');
-  });
-
-  it('returns null for unknown districts', () => {
-    expect(findMatchingDistrict('Unknown')).toBeNull();
-    expect(findMatchingDistrict('')).toBeNull();
-  });
-});
-
-describe('Product Data Validation', () => {
-  // Test that all products have required fields
-  const PRODUCTS = [
-    { id: 'dog', name: 'Dog Tradicional', category: 'salgados', price: 11.50, image: 'images/dog.jpg', hasExtras: true },
-    { id: 'chicken', name: 'Chicken Especial', category: 'especiais', price: 17.00, image: 'images/chicken.jpg', hasExtras: true },
-    { id: 'doce_sonho', name: 'Prensado Sonho de Valsa', category: 'doces', price: 13.50, image: 'images/doce_sonho.jpg', hasExtras: false },
-  ];
-
-  it('all products have required fields', () => {
-    PRODUCTS.forEach(product => {
-      expect(product).toHaveProperty('id');
-      expect(product).toHaveProperty('name');
-      expect(product).toHaveProperty('category');
-      expect(product).toHaveProperty('price');
-      expect(product).toHaveProperty('image');
-      expect(product).toHaveProperty('hasExtras');
-      expect(typeof product.price).toBe('number');
-      expect(product.price).toBeGreaterThan(0);
-    });
-  });
-
-  it('categories are valid', () => {
-    const validCategories = ['salgados', 'especiais', 'combos', 'doces', 'bebidas'];
-    PRODUCTS.forEach(product => {
-      expect(validCategories).toContain(product.category);
-    });
-  });
-
-  it('product IDs are unique', () => {
-    const ids = PRODUCTS.map(p => p.id);
-    const uniqueIds = [...new Set(ids)];
-    expect(ids.length).toBe(uniqueIds.length);
+  it('traz configurações de entrega, cupons e WhatsApp', () => {
+    expect(catalog.settings.whatsappPhone).toMatch(/^\d{12,13}$/);
+    expect(catalog.settings.districts.length).toBeGreaterThan(0);
+    expect(catalog.settings.freeShippingThreshold).toBeGreaterThan(0);
   });
 });

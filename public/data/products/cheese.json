@@ -6,5 +6,6 @@
   "desc": "Pão prensado, milho, batata palha, catchup, maionese, salsicha e camada dupla de queijo mussarela derretido.",
   "image": "dogzao.jpg",
   "badge": "🧀 Muito Queijo",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 70
 }

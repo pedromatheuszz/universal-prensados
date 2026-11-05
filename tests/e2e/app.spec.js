@@ -17,6 +17,10 @@ test.describe('Universal Prensados - Core Functionality', () => {
   });
 
   test('should have working navigation', async ({ page }) => {
+    // No mobile os links ficam atrás do botão de menu
+    if (await page.locator('#menu-toggle').isVisible()) {
+      await page.click('#menu-toggle');
+    }
     // Check navigation links exist
     await expect(page.locator('nav a[href="#cardapio"]')).toBeVisible();
     await expect(page.locator('nav a[href="#diferenciais"]')).toBeVisible();
@@ -83,8 +87,8 @@ test.describe('Universal Prensados - Core Functionality', () => {
   test('should display contact information', async ({ page }) => {
     await page.locator('#contato').scrollIntoViewIfNeeded();
     await expect(page.locator('#contato')).toBeVisible();
-    await expect(page.locator('text=Monsenhor Gercino')).toBeVisible();
-    await expect(page.locator('text=Joinville')).toBeVisible();
+    await expect(page.locator('#contato').getByText('Monsenhor Gercino').first()).toBeVisible();
+    await expect(page.locator('#contato').getByText('Joinville').first()).toBeVisible();
   });
 
   test('should have working coupon banner', async ({ page }) => {
@@ -95,8 +99,7 @@ test.describe('Universal Prensados - Core Functionality', () => {
 
   test('should be responsive on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.reload();
-    await page.waitForLoadState('networkidle');
+    await page.reload({ waitUntil: 'domcontentloaded' });
     
     // Mobile menu toggle should be visible
     await expect(page.locator('#menu-toggle')).toBeVisible();

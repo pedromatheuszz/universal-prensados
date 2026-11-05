@@ -30,7 +30,6 @@ export default defineConfig({
         // Code splitting strategy
         manualChunks: {
           'vendor-three': ['three'],
-          'vendor-utils': [],
         },
         // Asset naming with hashes for cache busting
         assetFileNames: (assetInfo) => {

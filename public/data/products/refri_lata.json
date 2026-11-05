@@ -6,5 +6,6 @@
   "desc": "Coca-Cola, Guaraná Antarctica, Fanta Laranja ou Sprite. Bem gelado!",
   "image": "refri_lata.jpg",
   "badge": "",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 170
 }

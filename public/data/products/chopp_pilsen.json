@@ -6,5 +6,6 @@
   "desc": "Chopp Pilsen artesanal de Joinville, servido com colarinho perfeito e super gelado.",
   "image": "chopp.jpg",
   "badge": "🍺 Gelado",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 210
 }

@@ -6,5 +6,6 @@
   "desc": "Polpa de fruta natural batida na hora: Maracujá, Laranja, Abacaxi ou Morango.",
   "image": "suco.jpg",
   "badge": "Fruta Natural",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 200
 }

@@ -2,9 +2,10 @@
   "id": "dogzao",
   "name": "3. Dogzão Especial",
   "category": "salgados",
-  "price": 17.00,
+  "price": 17,
   "desc": "Pão prensado, milho, batata palha, salsicha, fatias crocantes de bacon, calabresa fatiada, catchup e maionese.",
   "image": "dogzao.jpg",
   "badge": "🔥 Mais Pedido",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 30
 }

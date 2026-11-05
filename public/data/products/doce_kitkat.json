@@ -6,5 +6,6 @@
   "desc": "Pão prensado crocante com creme de leite fresco e barras de chocolate Kit Kat que derretem na boca.",
   "image": "doce_kitkat.jpg",
   "badge": "🍫 Premium",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 160
 }

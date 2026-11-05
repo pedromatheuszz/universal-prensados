@@ -1,44 +1,23 @@
 /**
  * Universal Prensados - Service Worker
- * Versão: 1.0.0
+ * Versão: 1.1.0
  * Estratégia: Cache First para assets estáticos, Network First para dados dinâmicos
  */
 
-const CACHE_NAME = 'universal-prensados-v1.0.0';
-const STATIC_CACHE = 'universal-prensados-static-v1.0.0';
-const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.0.0';
-const IMAGE_CACHE = 'universal-prensados-images-v1.0.0';
+const CACHE_NAME = 'universal-prensados-v1.1.0';
+const STATIC_CACHE = 'universal-prensados-static-v1.1.0';
+const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.1.0';
+const IMAGE_CACHE = 'universal-prensados-images-v1.1.0';
 
-// Assets essenciais para funcionamento offline
+// Assets essenciais para funcionamento offline.
+// JS/CSS gerados pelo Vite têm hash no nome e entram no cache na primeira visita.
 const CORE_ASSETS = [
   '/',
   '/index.html',
-  '/styles.css',
-  '/script.js',
   '/manifest.json',
-  '/images/dogzao.jpg',
-  '/images/dog.jpg',
-  '/images/chicken.jpg',
-  '/images/chickao.jpg',
-  '/images/combo_chicken.jpg',
-  '/images/combo_dogzao.jpg',
-  '/images/combo_kids.jpg',
-  '/images/combo_familia.jpg',
-  '/images/doce_sonho.jpg',
-  '/images/doce_ouro.jpg',
-  '/images/suco.jpg',
-  '/images/doce_kitkat.jpg',
-  '/images/chopp.jpg',
-  '/images/refri_lata.jpg',
-  '/images/refri_2l.jpg',
-  '/images/agua.jpg'
-];
-
-// Recursos externos que podem ser cacheados
-const EXTERNAL_RESOURCES = [
-  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@600;700;800;900&display=swap',
-  'https://fonts.gstatic.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
+  '/images/icon-192.png',
+  '/images/optimized/dogzao.webp',
+  '/images/optimized/dog.webp',
 ];
 
 // Instalação do Service Worker
@@ -127,7 +106,7 @@ self.addEventListener('fetch', (event) => {
 // Verificar se é asset estático (CSS, JS, manifest)
 function isStaticAsset(request) {
   const url = new URL(request.url);
-  return request.method === 'GET' && (
+  return request.method === 'GET' && url.origin === self.location.origin && (
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.json') ||

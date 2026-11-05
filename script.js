@@ -8,333 +8,21 @@
    ========================================================= */
 
 import * as THREE from "three";
+import { PRODUCTS, PRODUCTS_BY_ID, SETTINGS } from "./src/catalog.js";
+import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag } from "./src/utils.js";
+import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from "./src/pricing.js";
 import { initAnalytics, trackAddToCart, trackBeginCheckout, trackPurchase, trackApplyCoupon, trackViewItem, trackSearch } from "./analytics.js";
 
 // Initialize Analytics
 initAnalytics();
 
-// --- 1. PRODUCT DATABASE ---
-const PRODUCTS = [
-  // SALGADOS
-  {
-    id: 'dog',
-    name: '1. Dog Tradicional',
-    category: 'salgados',
-    price: 11.50,
-    desc: 'Pão prensado crocante, milho, batata palha, catchup, maionese e salsicha.',
-    image: 'images/dog.jpg',
-    badge: 'Clássico',
-    hasExtras: true
-  },
-  {
-    id: 'dog_duplo',
-    name: '2. Dog Duplo',
-    category: 'salgados',
-    price: 12.50,
-    desc: 'Pão prensado na chapa bem crocante, milho, batata palha, catchup, maionese e duas salsichas.',
-    image: 'images/dog.jpg',
-    badge: 'Duplo',
-    hasExtras: true
-  },
-  {
-    id: 'dogzao',
-    name: '3. Dogzão Especial',
-    category: 'salgados',
-    price: 17.00,
-    desc: 'Pão prensado, milho, batata palha, salsicha, fatias crocantes de bacon, calabresa fatiada, catchup e maionese.',
-    image: 'images/dogzao.jpg',
-    badge: '🔥 Mais Pedido',
-    hasExtras: true
-  },
-  {
-    id: 'dogzao_duplo',
-    name: '4. Dogzão Duplo',
-    category: 'salgados',
-    price: 18.00,
-    desc: 'Super reforçado! Pão prensado, milho, batata palha, 2 salsichas, muito bacon, calabresa, catchup e maionese.',
-    image: 'images/dogzao.jpg',
-    badge: 'Gigante',
-    hasExtras: true
-  },
-  {
-    id: 'dog_lino',
-    name: '5. Dog Lino (Frango)',
-    category: 'salgados',
-    price: 13.50,
-    desc: 'Pão prensado macio e crocante, milho, batata palha, catchup, maionese e salsicha de frango selecionada.',
-    image: 'images/dog.jpg',
-    badge: 'Frango',
-    hasExtras: true
-  },
-  {
-    id: 'dog_linozao',
-    name: '6. Dog Linozão Especial',
-    category: 'salgados',
-    price: 19.00,
-    desc: 'Pão prensado, milho, batata palha, catchup, maionese, salsicha de frango, bacon crocante e calabresa.',
-    image: 'images/dogzao.jpg',
-    badge: 'Imperdível',
-    hasExtras: true
-  },
-  {
-    id: 'cheese',
-    name: 'Cheese Prensado',
-    category: 'salgados',
-    price: 15.00,
-    desc: 'Pão prensado, milho, batata palha, catchup, maionese, salsicha e camada dupla de queijo mussarela derretido.',
-    image: 'images/dogzao.jpg',
-    badge: '🧀 Muito Queijo',
-    hasExtras: true
-  },
-
-  // ESPECIAIS
-  {
-    id: 'chicken',
-    name: '7. Chicken Especial',
-    category: 'especiais',
-    price: 17.00,
-    desc: 'Pão prensado na hora, milho, batata palha, salsicha, frango desfiado artesanal suculento e maionese da casa.',
-    image: 'images/chicken.jpg',
-    badge: '⭐ Favorito',
-    hasExtras: true
-  },
-  {
-    id: 'chickao',
-    name: '8. Chickão Completo',
-    category: 'especiais',
-    price: 20.50,
-    desc: 'O campeão da chapa! Pão prensado, milho, batata palha, salsicha, frango desfiado, bacon em fatias e calabresa.',
-    image: 'images/chickao.jpg',
-    badge: '🔥 Campeão',
-    hasExtras: true
-  },
-
-  // COMBOS
-  {
-    id: 'combo_chicken',
-    name: 'Combo Chicken Completo',
-    category: 'combos',
-    price: 30.50,
-    desc: '1 Chicken Grande + Porção de batata frita de 150g + 1 Refrigerante lata 350ml gelado.',
-    image: 'images/combo_chicken.jpg',
-    badge: '📦 Combo Individual',
-    hasExtras: true
-  },
-  {
-    id: 'combo_dogzao',
-    name: 'Combo Dogzão Completo',
-    category: 'combos',
-    price: 30.50,
-    desc: '1 Dogzão Grande bem recheado + Batata frita crocante de 150g + 1 Refrigerante lata geladinho.',
-    image: 'images/combo_dogzao.jpg',
-    badge: '🔥 Top Vendas',
-    hasExtras: true
-  },
-  {
-    id: 'combo_kids',
-    name: 'Combo Kids',
-    category: 'combos',
-    price: 20.50,
-    desc: '1 Dog pequeno + Batata frita de 100g + Suco ou refrigerante lata.',
-    image: 'images/combo_kids.jpg',
-    badge: '👶 Para os Pequenos',
-    hasExtras: true
-  },
-  {
-    id: 'combo_familia',
-    name: 'Combo Família Universal',
-    category: 'combos',
-    price: 109.90,
-    desc: '2 Dogs Duplos Grandes + 2 Dogzões Grandes + Batata frita 600g + 1 Coca-Cola 2L.',
-    image: 'images/combo_familia.jpg',
-    badge: '👨‍👩‍👧‍👦 Para Toda Família',
-    hasExtras: true
-  },
-
-  // DOCES
-  {
-    id: 'doce_sonho',
-    name: 'Prensado Sonho de Valsa',
-    category: 'doces',
-    price: 13.50,
-    desc: 'Pão prensado quentinho com toque especial, creme de leite fresco e muito bombom Sonho de Valsa derretido.',
-    image: 'images/doce_sonho.jpg',
-    badge: 'Sobremesa',
-    hasExtras: false
-  },
-  {
-    id: 'doce_ouro',
-    name: 'Prensado Ouro Branco',
-    category: 'doces',
-    price: 13.50,
-    desc: 'Pão prensado douradinho com creme de leite suave e bombons Ouro Branco cremosos.',
-    image: 'images/doce_ouro.jpg',
-    badge: 'Delicioso',
-    hasExtras: false
-  },
-  {
-    id: 'doce_kitkat',
-    name: 'Prensado Kit Kat Crocante',
-    category: 'doces',
-    price: 17.00,
-    desc: 'Pão prensado crocante com creme de leite fresco e barras de chocolate Kit Kat que derretem na boca.',
-    image: 'images/doce_kitkat.jpg',
-    badge: '🍫 Premium',
-    hasExtras: false
-  },
-
-  // BEBIDAS
-  {
-    id: 'refri_lata',
-    name: 'Refrigerante Lata 350ml',
-    category: 'bebidas',
-    price: 8.00,
-    desc: 'Coca-Cola, Guaraná Antarctica, Fanta Laranja ou Sprite. Bem gelado!',
-    image: 'images/refri_lata.jpg',
-    badge: '',
-    hasExtras: false
-  },
-  {
-    id: 'refri_600',
-    name: 'Refrigerante 600ml',
-    category: 'bebidas',
-    price: 10.00,
-    desc: 'Garrafa individual de 600ml estupidamente gelada.',
-    image: 'images/refri_lata.jpg',
-    badge: '',
-    hasExtras: false
-  },
-  {
-    id: 'refri_2l',
-    name: 'Refrigerante 2 Litros',
-    category: 'bebidas',
-    price: 20.00,
-    desc: 'Ideal para compartilhar em família ou com a galera.',
-    image: 'images/refri_2l.jpg',
-    badge: '',
-    hasExtras: false
-  },
-  {
-    id: 'suco_polpa',
-    name: 'Suco Natural de Polpa 500ml',
-    category: 'bebidas',
-    price: 9.00,
-    desc: 'Polpa de fruta natural batida na hora: Maracujá, Laranja, Abacaxi ou Morango.',
-    image: 'images/suco.jpg',
-    badge: 'Fruta Natural',
-    hasExtras: false
-  },
-  {
-    id: 'chopp_pilsen',
-    name: 'Chopp Pilsen Artesanal 400ml',
-    category: 'bebidas',
-    price: 13.00,
-    desc: 'Chopp Pilsen artesanal de Joinville, servido com colarinho perfeito e super gelado.',
-    image: 'images/chopp.jpg',
-    badge: '🍺 Gelado',
-    hasExtras: false
-  },
-  {
-    id: 'agua',
-    name: 'Água Mineral 500ml',
-    category: 'bebidas',
-    price: 4.50,
-    desc: 'Água mineral natural gelada, com ou sem gás.',
-    image: 'images/agua.jpg',
-    badge: '',
-    hasExtras: false
-  }
-];
- 
-// --- 1b. IMAGE OPTIMIZATION HELPER ---
-// Maps original image filenames to optimized versions
-const IMAGE_MAP = {
-  'dog.jpg': 'dog',
-  'dogzao.jpg': 'dogzao',
-  'chicken.jpg': 'chicken',
-  'chickao.jpg': 'chickao',
-  'combo_chicken.jpg': 'combo_chicken',
-  'combo_dogzao.jpg': 'combo_dogzao',
-  'combo_kids.jpg': 'combo_kids',
-  'combo_familia.jpg': 'combo_familia',
-  'doce_sonho.jpg': 'doce_sonho',
-  'doce_ouro.jpg': 'doce_ouro',
-  'doce_kitkat.jpg': 'doce_kitkat',
-  'refri_lata.jpg': 'refri_lata',
-  'refri_2l.jpg': 'refri_2l',
-  'suco.jpg': 'suco',
-  'chopp.jpg': 'chopp',
-  'agua.jpg': 'agua'
-};
- 
-// Generate responsive picture element with WebP/AVIF srcset
-function createOptimizedPicture(imagePath, alt, className = '', fetchPriority = '') {
-  const baseName = IMAGE_MAP[imagePath] || imagePath.replace('images/', '').replace('.jpg', '').replace('.png', '');
-  const optimizedPath = `images/optimized/${baseName}`;
- 
-  // Check if optimized version exists (fallback to original if not)
-  const hasOptimized = IMAGE_MAP[imagePath];
- 
-  if (!hasOptimized) {
-    // Fallback for external images or non-optimized images
-    return `<img src="${imagePath}" alt="${alt}" class="${className}" ${fetchPriority ? `fetchpriority="${fetchPriority}"` : ''} loading="lazy">`;
-  }
- 
-  const srcsetAvif = [320, 480, 640, 800, 1024]
-    .map(w => `${optimizedPath}-${w}w.avif ${w}w`)
-    .join(', ');
-  const srcsetWebp = [320, 480, 640, 800, 1024]
-    .map(w => `${optimizedPath}-${w}w.webp ${w}w`)
-    .join(', ');
- 
-  return `
-    <picture>
-      <source type="image/avif" srcset="${srcsetAvif}" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
-      <source type="image/webp" srcset="${srcsetWebp}" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw">
-      <img src="${optimizedPath}.webp" alt="${alt}" class="${className}" ${fetchPriority ? `fetchpriority="${fetchPriority}"` : ''} loading="lazy" width="400" height="300">
-    </picture>
-  `;
-}
- 
-// Create optimized image tag for modal (single image, no srcset needed)
-function createOptimizedImageTag(imagePath, alt, className = '') {
-  const baseName = IMAGE_MAP[imagePath] || imagePath.replace('images/', '').replace('.jpg', '').replace('.png', '');
-  const optimizedPath = `images/optimized/${baseName}`;
-  const hasOptimized = IMAGE_MAP[imagePath];
- 
-  if (!hasOptimized) {
-    return { src: imagePath, srcset: '' };
-  }
- 
-  return {
-    src: `${optimizedPath}.webp`,
-    srcset: `
-      ${optimizedPath}-320w.avif 320w,
-      ${optimizedPath}-480w.avif 480w,
-      ${optimizedPath}-640w.avif 640w,
-      ${optimizedPath}-800w.avif 800w,
-      ${optimizedPath}-1024w.avif 1024w
-    `,
-    srcsetWebp: `
-      ${optimizedPath}-320w.webp 320w,
-      ${optimizedPath}-480w.webp 480w,
-      ${optimizedPath}-640w.webp 640w,
-      ${optimizedPath}-800w.webp 800w,
-      ${optimizedPath}-1024w.webp 1024w
-    `
-  };
-}
- 
 // --- 2. GLOBAL STATE ---
 let cart = [];
 let appliedCoupon = null; // { code: 'BEMVINDO10', discountPercent: 10 }
 let currentCustomizingItem = null;
 let currentModalQty = 1;
-
-// Format Currency BRL
-function formatBRL(value) {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
+// Adicionais válidos (nome → { name, price }), lidos do modal no carregamento
+let extrasByName = new Map();
 
 // --- 3. TOAST NOTIFICATION UTILITY ---
 function showToast(message, icon = '✓') {
@@ -343,7 +31,11 @@ function showToast(message, icon = '✓') {
 
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  const iconEl = document.createElement('span');
+  iconEl.textContent = icon;
+  const messageEl = document.createElement('span');
+  messageEl.textContent = message;
+  toast.append(iconEl, ' ', messageEl);
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -726,16 +418,16 @@ function renderProducts(filterCategory = 'todos') {
     card.innerHTML = `
       <div class="product-card__thumb-wrapper">
         ${optimizedPicture}
-        ${product.badge ? `<span class="product-card__badge ${product.badge.includes('Mais') ? 'product-card__badge--hot' : ''}">${product.badge}</span>` : ''}
+        ${product.badge ? `<span class="product-card__badge ${product.badge.includes('Mais') ? 'product-card__badge--hot' : ''}">${escapeHTML(product.badge)}</span>` : ''}
       </div>
       <div class="product-card__body">
         <div class="product-card__header">
-          <h3 class="product-card__title">${product.name}</h3>
+          <h3 class="product-card__title">${escapeHTML(product.name)}</h3>
           <span class="product-card__price">${formatBRL(product.price)}</span>
         </div>
-        <p class="product-card__desc">${product.desc}</p>
+        <p class="product-card__desc">${escapeHTML(product.desc)}</p>
         <div class="product-card__actions">
-          <button class="btn btn--add-cart" data-action="open-modal" data-id="${product.id}">
+          <button class="btn btn--add-cart" data-action="open-modal" data-id="${escapeHTML(product.id)}">
             <span>+ Adicionar ao Pedido</span>
           </button>
         </div>
@@ -759,7 +451,7 @@ function renderProducts(filterCategory = 'todos') {
 
 // --- 8. CUSTOMIZATION MODAL (Lanche Customizer) ---
 function openCustomizerModal(productId) {
-  const product = PRODUCTS.find(p => p.id === productId);
+  const product = PRODUCTS_BY_ID.get(productId);
   if (!product) return;
 
   // Analytics: Track View Item
@@ -778,14 +470,9 @@ function openCustomizerModal(productId) {
   const qtyEl = document.getElementById('modal-qty-val');
 
   // Use optimized image for modal
-  const optimizedImg = createOptimizedImageTag(product.image, product.name);
+  const optimizedImg = createOptimizedImageTag(product.image);
   imgEl.src = optimizedImg.src;
-  if (optimizedImg.srcset) {
-    imgEl.srcset = optimizedImg.srcsetWebp;
-    imgEl.setAttribute('srcset', optimizedImg.srcsetWebp);
-    // Add type attribute for AVIF
-    imgEl.dataset.avifSrcset = optimizedImg.srcset;
-  }
+  imgEl.srcset = optimizedImg.srcsetWebp;
   imgEl.alt = product.name;
   titleEl.textContent = product.name;
   descEl.textContent = product.desc;
@@ -839,34 +526,27 @@ function updateModalTotal() {
 function loadCartFromStorage() {
   try {
     const saved = localStorage.getItem('up_cart');
-    if (saved) {
-      cart = JSON.parse(saved);
-    }
+    // Preços e nomes sempre vêm do catálogo atual, nunca do que ficou salvo no navegador
+    cart = saved ? repriceCart(JSON.parse(saved), PRODUCTS_BY_ID, extrasByName) : [];
   } catch (e) {
     cart = [];
   }
 }
 
 function saveCartToStorage() {
-  localStorage.setItem('up_cart', JSON.stringify(cart));
+  try {
+    localStorage.setItem('up_cart', JSON.stringify(cart));
+  } catch (e) {
+    // Armazenamento indisponível (modo privado); o carrinho segue só na memória
+  }
 }
 
 function addToCart(item, extras = [], removals = [], notes = '', qty = 1) {
-  const extrasTotal = extras.reduce((sum, ext) => sum + ext.price, 0);
-  const unitPrice = item.price + extrasTotal;
+  const [cartItem] = repriceCart([{ id: item.id, qty, extras, removals, notes }], PRODUCTS_BY_ID, extrasByName);
+  if (!cartItem) return;
+  const { unitPrice } = cartItem;
 
-  cart.push({
-    id: item.id,
-    name: item.name,
-    category: item.category,
-    image: item.image,
-    basePrice: item.price,
-    unitPrice: unitPrice,
-    qty: qty,
-    extras: extras,
-    removals: removals,
-    notes: notes
-  });
+  cart.push(cartItem);
 
   saveCartToStorage();
   updateCartUI();
@@ -897,19 +577,27 @@ function removeCartItem(index) {
 }
 
 function getCartSubtotal() {
-  return cart.reduce((sum, item) => sum + (item.unitPrice * item.qty), 0);
+  return calcSubtotal(cart);
 }
 
 function getCartDiscount() {
-  if (!appliedCoupon) return 0;
-  const subtotal = getCartSubtotal();
-  return (subtotal * appliedCoupon.discountPercent) / 100;
+  return calcDiscount(getCartSubtotal(), appliedCoupon);
 }
 
 function getCartTotal() {
-  const subtotal = getCartSubtotal();
-  const discount = getCartDiscount();
-  return Math.max(0, subtotal - discount);
+  return calcTotal({ subtotal: getCartSubtotal(), discount: getCartDiscount() });
+}
+
+// Taxa do bairro selecionado no checkout (grátis acima do valor mínimo)
+function getDeliveryFee(isDelivery) {
+  const districtSelect = document.getElementById('order-district');
+  const selectedOption = districtSelect ? districtSelect.options[districtSelect.selectedIndex] : null;
+  return calcDeliveryFee({
+    isDelivery,
+    subtotal: getCartSubtotal(),
+    districtFee: selectedOption?.dataset.fee ? parseFloat(selectedOption.dataset.fee) : NaN,
+    freeShippingThreshold: SETTINGS.freeShippingThreshold,
+  });
 }
 
 function updateCartUI() {
@@ -941,8 +629,8 @@ function updateCartUI() {
     }
   }
 
-  // Free shipping progress bar (Free shipping over R$ 70,00)
-  const freeShippingThreshold = 70.00;
+  // Free shipping progress bar (valor mínimo definido no CMS)
+  const freeShippingThreshold = SETTINGS.freeShippingThreshold;
   const progressBar = document.getElementById('free-shipping-progress');
   const progressText = document.getElementById('free-shipping-text');
   if (progressBar && progressText) {
@@ -968,7 +656,7 @@ function updateCartUI() {
           <span class="cart-empty-state__icon">🛒</span>
           <h4>Seu carrinho está vazio</h4>
           <p>Que tal escolher um Dogzão Especial ou um combo para hoje?</p>
-          <a href="#cardapio" class="btn btn--outline" onclick="closeCart()">Explorar Cardápio</a>
+          <a href="#cardapio" class="btn btn--outline" data-action="close-cart">Explorar Cardápio</a>
         </div>
       `;
       if (cartFooter) cartFooter.style.display = 'none';
@@ -991,22 +679,22 @@ function updateCartUI() {
           detailsArr.push(`Obs: "${item.notes}"`);
         }
 
-        const detailsText = detailsArr.length > 0 
-          ? `<div class="cart-item-card__details">${detailsArr.join(' • ')}</div>` 
+        const detailsText = detailsArr.length > 0
+          ? `<div class="cart-item-card__details">${escapeHTML(detailsArr.join(' • '))}</div>`
           : '';
 
         itemCard.innerHTML = `
           ${createOptimizedPicture(item.image, item.name, 'cart-item-card__img')}
           <div class="cart-item-card__info">
-            <h4 class="cart-item-card__title">${item.name}</h4>
+            <h4 class="cart-item-card__title">${escapeHTML(item.name)}</h4>
             ${detailsText}
             <div class="cart-item-card__bottom">
               <span class="cart-item-card__price">${formatBRL(item.unitPrice * item.qty)}</span>
               <div class="cart-item-qty-actions">
-                <button type="button" class="cart-qty-btn" onclick="updateCartItemQty(${index}, -1)">−</button>
+                <button type="button" class="cart-qty-btn" data-action="qty" data-index="${index}" data-delta="-1" aria-label="Diminuir quantidade">−</button>
                 <span class="cart-item-qty">${item.qty}</span>
-                <button type="button" class="cart-qty-btn" onclick="updateCartItemQty(${index}, 1)">+</button>
-                <button type="button" class="cart-item-remove-btn" onclick="removeCartItem(${index})" title="Remover item">✕</button>
+                <button type="button" class="cart-qty-btn" data-action="qty" data-index="${index}" data-delta="1" aria-label="Aumentar quantidade">+</button>
+                <button type="button" class="cart-item-remove-btn" data-action="remove" data-index="${index}" title="Remover item" aria-label="Remover item">✕</button>
               </div>
             </div>
           </div>
@@ -1078,20 +766,8 @@ function updateCheckoutSummary() {
   
   // Delivery Fee
   const isDelivery = document.querySelector('input[name="delivery_type"]:checked')?.value === 'delivery';
-  let fee = 0;
-
-  if (isDelivery) {
-    // If subtotal is over R$ 70,00, delivery is free
-    if (subtotal >= 70.00) {
-      fee = 0;
-    } else {
-      const districtSelect = document.getElementById('order-district');
-      const selectedOption = districtSelect ? districtSelect.options[districtSelect.selectedIndex] : null;
-      fee = selectedOption && selectedOption.dataset.fee ? parseFloat(selectedOption.dataset.fee) : 5.00;
-    }
-  }
-
-  const finalTotal = Math.max(0, subtotal - discount + fee);
+  const fee = getDeliveryFee(isDelivery);
+  const finalTotal = calcTotal({ subtotal, discount, fee });
 
   const subtotalEl = document.getElementById('checkout-subtotal');
   const feeEl = document.getElementById('checkout-fee');
@@ -1153,20 +829,18 @@ function processOrder(e) {
     return;
   }
 
-  // Calculate financials
+  // Calculate financials (carrinho repreçado pelo catálogo antes de fechar o pedido)
+  cart = repriceCart(cart, PRODUCTS_BY_ID, extrasByName);
+  if (cart.length === 0) {
+    saveCartToStorage();
+    updateCartUI();
+    showToast('Os itens do carrinho não estão mais disponíveis.', '⚠️');
+    return;
+  }
   const subtotal = getCartSubtotal();
   const discount = getCartDiscount();
-  let fee = 0;
-  if (deliveryType === 'delivery') {
-    if (subtotal >= 70.00) {
-      fee = 0;
-    } else {
-      const districtSelect = document.getElementById('order-district');
-      const selectedOption = districtSelect.options[districtSelect.selectedIndex];
-      fee = selectedOption && selectedOption.dataset.fee ? parseFloat(selectedOption.dataset.fee) : 5.00;
-    }
-  }
-  const total = Math.max(0, subtotal - discount + fee);
+  const fee = getDeliveryFee(deliveryType === 'delivery');
+  const total = calcTotal({ subtotal, discount, fee });
 
   // Generate Unique Order Code
   const orderId = `UP-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1227,7 +901,7 @@ function processOrder(e) {
   msg += `Aguardando confirmação do pedido! Muito obrigado!`;
 
   const encodedMsg = encodeURIComponent(msg);
-  const whatsappUrl = `https://wa.me/5547996366274?text=${encodedMsg}`;
+  const whatsappUrl = `https://wa.me/${SETTINGS.whatsappPhone}?text=${encodedMsg}`;
 
   // Open WhatsApp in new tab
   window.open(whatsappUrl, '_blank');
@@ -1272,8 +946,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load 3D WebGL Scene
   initHero3D();
 
+  // Adicionais válidos e seus preços (fonte única: checkboxes do modal)
+  extrasByName = new Map(
+    [...document.querySelectorAll('#custom-modal input[name="extra"]')]
+      .map(cb => [cb.dataset.name, { name: cb.dataset.name, price: parseFloat(cb.dataset.price) }])
+  );
+
+  // Bairros e taxas vindos do CMS
+  const districtSelectEl = document.getElementById('order-district');
+  if (districtSelectEl) {
+    SETTINGS.districts.forEach(d => {
+      const option = document.createElement('option');
+      option.value = d.name;
+      option.dataset.fee = String(d.fee);
+      option.textContent = `${d.name} (Taxa: ${formatBRL(d.fee)})`;
+      districtSelectEl.appendChild(option);
+    });
+  }
+
   // Load Saved Cart
   loadCartFromStorage();
+
+  // Ações dos itens do carrinho (delegação — os itens são re-renderizados a cada mudança)
+  document.getElementById('cart-items-list')?.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const index = Number(target.dataset.index);
+    if (target.dataset.action === 'qty') updateCartItemQty(index, Number(target.dataset.delta));
+    else if (target.dataset.action === 'remove') removeCartItem(index);
+    else if (target.dataset.action === 'close-cart') closeCart();
+  });
 
   // Render initial menu
   renderProducts('todos');
@@ -1430,16 +1132,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (applyCouponBtn && couponInput) {
     applyCouponBtn.addEventListener('click', () => {
       const code = couponInput.value.trim().toUpperCase();
-      if (code === 'BEMVINDO10') {
-        appliedCoupon = { code: 'BEMVINDO10', discountPercent: 10 };
+      const coupon = findCoupon(code, SETTINGS.coupons);
+      if (coupon) {
+        appliedCoupon = { code: coupon.code, discountPercent: coupon.discountPercent };
         couponMsg.className = 'coupon-feedback success';
-        couponMsg.textContent = 'Cupom aplicado! 10% de desconto.';
+        couponMsg.textContent = `Cupom aplicado! ${coupon.discountPercent}% de desconto.`;
         updateCartUI();
-        showToast('Desconto de 10% aplicado no pedido!', '🎉');
-        
+        showToast(`Desconto de ${coupon.discountPercent}% aplicado no pedido!`, '🎉');
+
         // Analytics: Track Coupon Application
-        const discountAmount = getCartSubtotal() * 0.1;
-        trackApplyCoupon('BEMVINDO10', discountAmount);
+        trackApplyCoupon(coupon.code, getCartDiscount());
       } else if (!code) {
         couponMsg.className = 'coupon-feedback error';
         couponMsg.textContent = 'Digite um cupom válido.';
@@ -1488,19 +1190,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const districtSelect = document.getElementById('order-district');
   const streetInput = document.getElementById('order-street');
 
-  // Map of Joinville neighborhoods to district options
-  const JOINVILLE_DISTRICTS = {
-    'jarivatuba': 'Jarivatuba',
-    'joao costa': 'João Costa',
-    'guanabara': 'Guanabara',
-    'fatima': 'Fátima',
-    'itaum': 'Itaum',
-    'paranaguamirim': 'Paranaguamirim',
-    'boehmerwald': 'Boehmerwald',
-    'bucarein': 'Bucarein',
-    'floresta': 'Floresta',
-    'centro': 'Centro'
-  };
+  // Bairros do CMS indexados pelo slug normalizado (ex.: "joao costa" → "joaocosta")
+  const JOINVILLE_DISTRICTS = Object.fromEntries(
+    SETTINGS.districts.map(d => [normalizeStr(d.slug), d.name])
+  );
 
   // Format CEP input (99999-999)
   function formatCEP(value) {
@@ -1514,14 +1207,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Validate CEP format
   function isValidCEP(cep) {
     return /^\d{5}-?\d{3}$/.test(cep);
-  }
-
-  // Normalize string for comparison
-  function normalizeStr(str) {
-    return str.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
   }
 
   // Find matching district from ViaCEP response
@@ -1565,7 +1250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const matchedDistrict = findMatchingDistrict(data.bairro, data.localidade, data.uf);
     if (matchedDistrict) {
       // Find the option with matching value
-      const option = districtSelect.querySelector(`option[value="${matchedDistrict}"]`);
+      const option = [...districtSelect.options].find(o => o.value === matchedDistrict);
       if (option) {
         districtSelect.value = matchedDistrict;
         // Trigger change to update delivery fee

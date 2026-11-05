@@ -6,5 +6,6 @@
   "desc": "O campeão da chapa! Pão prensado, milho, batata palha, salsicha, frango desfiado, bacon em fatias e calabresa.",
   "image": "chickao.jpg",
   "badge": "🔥 Campeão",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 90
 }

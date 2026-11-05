@@ -185,7 +185,7 @@ export function trackBeginCheckout(cartItems) {
  * @param {Object} orderData - Order data from checkout
  */
 export function trackPurchase(orderData) {
-  const { orderId, items, subtotal, discount, deliveryFee, total, paymentMethod, deliveryType } = orderData;
+  const { orderId, items, discount, deliveryFee, total, paymentMethod, deliveryType } = orderData;
   
   const ga4Items = items.map(item => formatGA4Item(item, item.qty));
   

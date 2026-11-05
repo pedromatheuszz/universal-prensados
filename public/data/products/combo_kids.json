@@ -6,5 +6,6 @@
   "desc": "1 Dog pequeno + Batata frita de 100g + Suco ou refrigerante lata.",
   "image": "combo_kids.jpg",
   "badge": "👶 Para os Pequenos",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 120
 }

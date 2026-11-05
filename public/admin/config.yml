@@ -9,8 +9,8 @@ backend:
     update: 'Update {{collection}} "{{slug}}"'
     delete: 'Delete {{collection}} "{{slug}}"'
 
-media_folder: "images/optimized"
-public_folder: "/images/optimized"
+media_folder: "public/images/uploads"
+public_folder: "/images/uploads"
 
 site_url: https://universalprensados.com.br
 
@@ -22,7 +22,9 @@ collections:
   # Products Collection
   - name: "products"
     label: "Produtos"
-    folder: "data/products"
+    folder: "public/data/products"
+    extension: "json"
+    format: "json"
     create: true
     slug: "{{id}}"
     fields:
@@ -34,6 +36,8 @@ collections:
       - {label: "Imagem", name: "image", widget: "image", required: true, media_library: {config: {multiple: false}}}
       - {label: "Badge/Título", name: "badge", widget: "string", required: false}
       - {label: "Permite Adicionais", name: "hasExtras", widget: "boolean", default: true}
+      - {label: "Ordem no cardápio", name: "order", widget: "number", required: false, value_type: "int", hint: "Menor aparece primeiro"}
+      - {label: "Ativo", name: "active", widget: "boolean", default: true, required: false, hint: "Desmarque para esconder do cardápio"}
 
   # Site Settings
   - name: "settings"
@@ -41,7 +45,7 @@ collections:
     files:
       - name: "general"
         label: "Configurações Gerais"
-        file: "data/settings/general.json"
+        file: "public/data/settings/general.json"
         fields:
           - {label: "Nome da Loja", name: "storeName", widget: "string", default: "Universal Prensados"}
           - {label: "Telefone WhatsApp", name: "whatsappPhone", widget: "string", default: "5547996366274"}
@@ -51,7 +55,7 @@ collections:
           
       - name: "delivery"
         label: "Configurações de Entrega"
-        file: "data/settings/delivery.json"
+        file: "public/data/settings/delivery.json"
         fields:
           - {label: "Valor Mínimo para Frete Grátis (R$)", name: "freeShippingThreshold", widget: "number", default: 70, min: 0, step: 0.01}
           - {label: "Bairros e Taxas", name: "districts", widget: "list", fields:
@@ -64,7 +68,7 @@ collections:
           
       - name: "coupons"
         label: "Cupons de Desconto"
-        file: "data/settings/coupons.json"
+        file: "public/data/settings/coupons.json"
         fields:
           - {label: "Cupons", name: "coupons", widget: "list", fields:
               [
@@ -78,7 +82,7 @@ collections:
   # Reviews/Depoimentos
   - name: "reviews"
     label: "Depoimentos"
-    folder: "data/reviews"
+    folder: "public/data/reviews"
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     fields:
@@ -95,7 +99,7 @@ collections:
     files:
       - name: "hero"
         label: "Hero Principal"
-        file: "data/settings/hero.json"
+        file: "public/data/settings/hero.json"
         fields:
           - {label: "Título Principal", name: "title", widget: "string", default: "O Verdadeiro Lanche Prensado de Joinville."}
           - {label: "Subtítulo", name: "subtitle", widget: "text", default: "Pão crocante tostado no capricho, recheios generosos, bacon no ponto certo e molhos artesanais da casa."}
@@ -112,7 +116,7 @@ collections:
     files:
       - name: "about"
         label: "Conteúdo Sobre Nós"
-        file: "data/settings/about.json"
+        file: "public/data/settings/about.json"
         fields:
           - {label: "Título", name: "title", widget: "string", default: "O padrão inconfundível de Joinville"}
           - {label: "Texto Principal 1", name: "description1", widget: "text", default: "O Universal Prensados é tradição na região de Jarivatuba e João Costa. Cada lanche prensado passa pela nossa chapa bem quente para garantir aquela crocância externa irresistível com o recheio cremoso e generoso por dentro."}

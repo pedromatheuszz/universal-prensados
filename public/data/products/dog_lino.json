@@ -6,5 +6,6 @@
   "desc": "Pão prensado macio e crocante, milho, batata palha, catchup, maionese e salsicha de frango selecionada.",
   "image": "dog.jpg",
   "badge": "Frango",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 50
 }

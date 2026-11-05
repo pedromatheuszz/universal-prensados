@@ -6,5 +6,6 @@
   "desc": "Ideal para compartilhar em família ou com a galera.",
   "image": "refri_2l.jpg",
   "badge": "",
-  "hasExtras": false
+  "hasExtras": false,
+  "order": 190
 }

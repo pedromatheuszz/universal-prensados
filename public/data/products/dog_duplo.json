@@ -2,9 +2,10 @@
   "id": "dog_duplo",
   "name": "2. Dog Duplo",
   "category": "salgados",
-  "price": 12.50,
+  "price": 12.5,
   "desc": "Pão prensado na chapa bem crocante, milho, batata palha, catchup, maionese e duas salsichas.",
   "image": "dog.jpg",
   "badge": "Duplo",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 20
 }

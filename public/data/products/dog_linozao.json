@@ -6,5 +6,6 @@
   "desc": "Pão prensado, milho, batata palha, catchup, maionese, salsicha de frango, bacon crocante e calabresa.",
   "image": "dogzao.jpg",
   "badge": "Imperdível",
-  "hasExtras": true
+  "hasExtras": true,
+  "order": 60
 }

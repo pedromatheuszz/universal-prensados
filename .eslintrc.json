@@ -21,7 +21,12 @@
     {
       "files": [
         "scripts/**/*.js",
+        "site/scripts/**/*.js",
         "*.config.js",
+        "site/*.config.js",
+        "app/main.js",
+        "app/preload.cjs",
+        "app/lib/**/*.js",
         "server/**/*.js",
         "netlify/**/*.js"
       ],
@@ -32,7 +37,7 @@
     },
     {
       "files": [
-        "public/sw.js"
+        "site/public/sw.js"
       ],
       "env": {
         "serviceworker": true,
@@ -56,6 +61,27 @@
         "beforeEach": "readonly",
         "afterEach": "readonly",
         "test": "readonly"
+      }
+    },
+    {
+      "files": [
+        "app/renderer/**/*.js"
+      ],
+      "env": {
+        "browser": true,
+        "node": false
+      }
+    },
+    {
+      "files": [
+        "app/preload.cjs"
+      ],
+      "parserOptions": {
+        "sourceType": "script"
+      },
+      "env": {
+        "node": true,
+        "browser": false
       }
     }
   ]

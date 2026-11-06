@@ -5,10 +5,11 @@ import { requireStaff } from '../../server/auth.js';
 import { parseRange, salesReport } from '../../server/reports.js';
 
 export default handle(async (req) => {
-  requireStaff(req);
+  const db = getDb();
+  await requireStaff(req, db, 'finance.view');
   if (req.method !== 'GET') return methodNotAllowed(['GET']);
   const range = parseRange(new URL(req.url).searchParams);
-  return json(await salesReport(getDb(), range));
+  return json(await salesReport(db, range));
 });
 
 export const config = { path: '/api/admin/reports' };

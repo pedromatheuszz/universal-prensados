@@ -1,0 +1,8 @@
+[
+  { "id": "bacon", "name": "Bacon Crocante", "label": "+ Bacon Crocante Extra", "price": 3.5 },
+  { "id": "queijo", "name": "Queijo Duplo", "label": "+ Queijo Mussarela Duplo", "price": 3 },
+  { "id": "catupiry", "name": "Catupiry", "label": "+ Catupiry Original", "price": 3.5 },
+  { "id": "salsicha", "name": "Salsicha Extra", "label": "+ Salsicha Extra", "price": 2.5 },
+  { "id": "batata", "name": "Batata Palha Extra", "label": "+ Batata Palha Extra", "price": 2 },
+  { "id": "ovo", "name": "Ovo na Chapa", "label": "+ Ovo na Chapa", "price": 2.5 }
+]

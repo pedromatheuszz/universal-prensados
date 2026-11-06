@@ -7,6 +7,8 @@
       "runtimeArgs": [
         "vite",
         "preview",
+        "--config",
+        "site/vite.config.js",
         "--port",
         "4173",
         "--strictPort"
@@ -18,6 +20,8 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": [
         "vite",
+        "--config",
+        "site/vite.config.js",
         "--port",
         "3000",
         "--strictPort"

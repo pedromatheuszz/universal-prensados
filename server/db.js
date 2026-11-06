@@ -25,6 +25,9 @@ export function schemaStatements(file = 'db/schema.sql') {
     .split(';').map(s => s.trim()).filter(Boolean);
 }
 
+// Aplica o schema e, se o cardápio estiver vazio, os dados iniciais de db/seed/
 export async function migrate(db = getDb()) {
   for (const statement of schemaStatements()) await db.query(statement);
+  const { seedCatalog } = await import('./catalog.js');
+  await seedCatalog(db);
 }

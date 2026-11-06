@@ -8,9 +8,12 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 import { loadEnv } from 'vite';
 
-const FUNCTIONS_DIR = 'netlify/functions';
+// Caminhos absolutos: o Vite roda com root em site/, mas a API mora na raiz do repositório
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const FUNCTIONS_DIR = path.join(REPO, 'netlify/functions');
 
 function toRegex(pattern) {
   const keys = [];
@@ -31,22 +34,22 @@ export function devApi() {
     name: 'universal-dev-api',
     apply: 'serve',
     async configureServer(server) {
-      Object.assign(process.env, { ...loadEnv('development', process.cwd(), ''), ...process.env });
+      Object.assign(process.env, { ...loadEnv('development', REPO, ''), ...process.env });
       process.env.NODE_ENV = 'development';
       // segredo de sessão local persistido, para o login sobreviver a reinícios do servidor
       if (!process.env.SESSION_SECRET) {
-        fs.mkdirSync('.data', { recursive: true });
-        const file = '.data/dev-session-secret';
+        fs.mkdirSync(path.join(REPO, '.data'), { recursive: true });
+        const file = path.join(REPO, '.data/dev-session-secret');
         if (!fs.existsSync(file)) fs.writeFileSync(file, crypto.randomBytes(32).toString('hex'));
         process.env.SESSION_SECRET = fs.readFileSync(file, 'utf8').trim();
       }
 
-      const loadDbModule = () => server.ssrLoadModule('/server/db.js');
+      const loadDbModule = () => server.ssrLoadModule(path.join(REPO, 'server/db.js'));
 
       if (!process.env.DATABASE_URL) {
         const { PGlite } = await import('@electric-sql/pglite');
-        fs.mkdirSync('.data', { recursive: true });
-        const pg = new PGlite('.data/dev-db');
+        fs.mkdirSync(path.join(REPO, '.data'), { recursive: true });
+        const pg = new PGlite(path.join(REPO, '.data/dev-db'));
         localDb = { query: (text, params) => pg.query(text, params).then(r => r.rows) };
         // imports nativos: o grafo de módulos do Vite ainda não está pronto neste ponto
         const { migrate } = await import('./db.js');
@@ -56,7 +59,7 @@ export function devApi() {
         const password = process.env.DEV_STAFF_PASSWORD || 'equipe-dev-123';
         const { hashPassword } = await import('./auth.js');
         await localDb.query(
-          `INSERT INTO staff_users (username, password_hash) VALUES ($1, $2)
+          `INSERT INTO staff_users (username, password_hash, display_name, role) VALUES ($1, $2, 'Equipe (teste)', 'dono')
            ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
           [user, hashPassword(password)]
         );
@@ -74,7 +77,7 @@ export function devApi() {
 
           const url = new URL(req.url, 'http://localhost');
           for (const file of fs.readdirSync(FUNCTIONS_DIR).filter(f => f.endsWith('.js'))) {
-            const mod = await server.ssrLoadModule('/' + path.posix.join(FUNCTIONS_DIR, file));
+            const mod = await server.ssrLoadModule(path.join(FUNCTIONS_DIR, file));
             const patterns = [mod.config?.path].flat().filter(Boolean);
             for (const pattern of patterns) {
               const { regex, keys } = toRegex(pattern);

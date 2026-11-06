@@ -1,24 +1,18 @@
-// /api/admin/session — POST faz login, GET informa a sessão atual, DELETE faz logout
+// /api/admin/session — POST faz login (devolve o token do app), GET informa o usuário atual
 import { getDb } from '../../server/db.js';
 import { handle, json, readJson, clientIpHash, methodNotAllowed, HttpError } from '../../server/http.js';
-import { verifyPassword, createSessionCookie, clearSessionCookie, readSession } from '../../server/auth.js';
+import { verifyPassword, createToken, requireStaff, toPublicUser } from '../../server/auth.js';
 
 const MAX_FAILURES = 10;
 const WINDOW_MIN = 15;
 
 export default handle(async (req, context) => {
-  if (req.method === 'GET') {
-    const session = readSession(req);
-    return session ? json({ username: session.username }) : json({ error: 'Não autenticado' }, 401);
-  }
+  const db = getDb();
 
-  if (req.method === 'DELETE') {
-    return json({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie() });
-  }
-
+  if (req.method === 'GET') return json({ user: await requireStaff(req, db) });
+  if (req.method === 'DELETE') return json({ ok: true }); // o app só descarta o token
   if (req.method !== 'POST') return methodNotAllowed(['GET', 'POST', 'DELETE']);
 
-  const db = getDb();
   const ipHash = clientIpHash(req, context);
   const [{ n }] = await db.query(
     `SELECT count(*)::int AS n FROM login_attempts WHERE ip_hash = $1 AND created_at > now() - ($2::int * interval '1 minute')`,
@@ -28,16 +22,17 @@ export default handle(async (req, context) => {
 
   const { username, password } = await readJson(req);
   const user = typeof username === 'string' && typeof password === 'string'
-    ? (await db.query('SELECT username, password_hash FROM staff_users WHERE username = $1', [username.trim().toLowerCase()]))[0]
+    ? (await db.query('SELECT * FROM staff_users WHERE username = $1', [username.trim().toLowerCase()]))[0]
     : null;
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     await db.query('INSERT INTO login_attempts (ip_hash) VALUES ($1)', [ipHash]);
     throw new HttpError(401, 'Usuário ou senha incorretos');
   }
+  if (!user.active) throw new HttpError(403, 'Usuário desativado. Fale com o dono da loja.');
 
   await db.query('DELETE FROM login_attempts WHERE ip_hash = $1', [ipHash]);
-  return json({ username: user.username }, 200, { 'Set-Cookie': createSessionCookie(user.username) });
+  return json({ token: createToken(user.username, user.session_version), user: toPublicUser(user) });
 });
 
 export const config = { path: '/api/admin/session' };

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Universal Gestão</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- Barra de título própria (os botões da janela são os nativos do Windows, à direita) -->
+    <header class="titlebar">
+      <div class="titlebar__brand">
+        <img src="assets/logo.webp" alt="">
+        <strong>UNIVERSAL <span>GESTÃO</span></strong>
+      </div>
+      <div class="titlebar__crumb" id="crumb" hidden></div>
+      <button class="search-trigger" id="search-trigger" hidden>
+        <span id="search-icon"></span><span>Buscar pedido, cliente ou tela…</span><kbd>Ctrl</kbd><kbd>K</kbd>
+      </button>
+    </header>
+
+    <div class="body" id="body" hidden>
+      <aside class="sidebar">
+        <nav id="nav" aria-label="Menu"></nav>
+        <div class="sidebar__bottom">
+          <div class="store-card" id="store-card">
+            <div class="store-card__status"><span class="dot" id="store-dot"></span><span id="store-title">Loja</span></div>
+            <div class="store-card__label" id="store-label">Carregando…</div>
+            <button class="btn btn--sm btn--block" id="store-pause" hidden></button>
+          </div>
+          <div class="user-card">
+            <div class="avatar" id="user-avatar"></div>
+            <div class="user-card__info"><div class="user-card__name" id="user-name"></div><div class="user-card__role" id="user-role"></div></div>
+            <button class="btn btn--ghost btn--icon btn--sm" id="collapse" title="Recolher menu (Ctrl+B)"></button>
+            <button class="btn btn--ghost btn--icon btn--sm" id="logout" title="Sair"></button>
+          </div>
+        </div>
+      </aside>
+      <main class="main">
+        <div class="page-head">
+          <div><h1 id="view-title"></h1><p id="view-subtitle"></p></div>
+          <div class="page-head__actions" id="view-actions"></div>
+        </div>
+        <section class="view" id="view"></section>
+      </main>
+    </div>
+
+    <footer class="statusbar" id="statusbar">
+      <span class="statusbar__item"><span class="dot" id="conn-dot"></span><span id="conn-text">Iniciando…</span></span>
+      <span class="statusbar__item" id="sync-text"></span>
+      <span class="statusbar__item" id="active-text"></span>
+      <span class="spacer"></span>
+      <button id="shortcuts-btn" title="Atalhos de teclado"></button>
+      <span class="statusbar__item" id="server-text"></span>
+      <span class="statusbar__item" id="version-text"></span>
+    </footer>
+  </div>
+
+  <!-- Login -->
+  <div class="login" id="login-screen" hidden>
+    <div class="login__brand">
+      <div class="orbits"><span></span><span></span><span></span></div>
+      <div class="login__hero">
+        <img src="assets/logo.webp" alt="Universal Prensados">
+        <h2>Sua lanchonete, <span>em tempo real</span></h2>
+        <p>Pedidos do site, cardápio, caixa e financeiro da Universal Prensados num só lugar.</p>
+        <div class="login__features" id="login-features"></div>
+      </div>
+    </div>
+    <div class="login__panel">
+      <form id="login-form" class="login__form" autocomplete="off">
+        <h1>Entrar</h1>
+        <p>Use o usuário que o dono cadastrou para você.</p>
+        <label class="field"><span>Usuário</span><input class="input" id="login-user" required autofocus spellcheck="false"></label>
+        <label class="field"><span>Senha</span><input class="input" id="login-pass" type="password" required></label>
+        <label class="check"><input type="checkbox" id="login-remember" checked> Manter conectado neste computador</label>
+        <div id="login-error" class="login__error" hidden></div>
+        <button class="btn btn--primary btn--lg btn--block" id="login-submit">Entrar</button>
+        <p class="login__server"><span id="login-server-icon"></span><span id="login-server"></span> · <button type="button" id="login-change-server">alterar servidor</button></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Abertura -->
+  <div class="splash" id="splash">
+    <div>
+      <div class="splash__logo"><img src="assets/logo.webp" alt=""></div>
+      <p>Conectando…</p>
+    </div>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toasts" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

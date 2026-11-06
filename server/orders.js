@@ -1,9 +1,9 @@
 // Regras de negócio dos pedidos. Preços, taxas e cupons são sempre recalculados
-// no servidor a partir do catálogo do CMS — o que o navegador envia não é confiável.
+// no servidor a partir do cardápio do banco — o que o navegador envia não é confiável.
 import crypto from 'crypto';
-import { PRODUCTS_BY_ID, SETTINGS } from '../src/catalog.js';
-import { EXTRAS_BY_NAME, REMOVALS } from '../src/menu-options.js';
-import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../src/pricing.js';
+import { REMOVALS } from '../shared/menu-options.js';
+import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../shared/pricing.js';
+import { getStoreStatus } from '../shared/store-hours.js';
 import { HttpError } from './http.js';
 
 export const STATUSES = ['novo', 'preparando', 'pronto', 'saiu_entrega', 'entregue', 'cancelado'];
@@ -38,11 +38,15 @@ const text = (value, max) => (typeof value === 'string' ? value.trim().slice(0, 
 
 /**
  * Valida a entrada do checkout e devolve o pedido normalizado com valores calculados.
- * Lança HttpError(422) com a lista de problemas encontrados.
+ * catalog vem de getPricingCatalog(db). Lança HttpError(422) com a lista de problemas
+ * encontrados, ou 409 se a loja estiver fechada/pausada.
  */
-export function buildOrder(input, { products = PRODUCTS_BY_ID, settings = SETTINGS, extras = EXTRAS_BY_NAME } = {}) {
+export function buildOrder(input, { products, settings, extras }, now = new Date()) {
   const errors = [];
   const body = input && typeof input === 'object' ? input : {};
+
+  const store = getStoreStatus(now, settings);
+  if (!store.open) throw new HttpError(409, `Não estamos recebendo pedidos agora (${store.label.replace(/^\S+ • /, '')}).`);
 
   const name = text(body.customer?.name, 80);
   const phone = String(body.customer?.phone ?? '').replace(/\D/g, '').slice(0, 13);
@@ -85,6 +89,8 @@ export function buildOrder(input, { products = PRODUCTS_BY_ID, settings = SETTIN
   }));
   const items = repriceCart(cleanItems, products, extras);
   if (rawItems.length > 0 && items.length !== rawItems.length) errors.push('Algum item do carrinho não está mais disponível');
+  const soldOut = items.filter(i => products.get(i.id)?.soldOut);
+  if (soldOut.length) errors.push(`Esgotado no momento: ${soldOut.map(i => i.name).join(', ')}`);
 
   if (errors.length) throw new HttpError(422, errors[0], errors);
 
@@ -140,6 +146,7 @@ export function toStaffOrder(row) {
     deliveryFee: num(row.delivery_fee),
     total: num(row.total),
     couponCode: row.coupon_code,
+    cancelReason: row.cancel_reason || null,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   };
@@ -212,7 +219,7 @@ export async function listBoard(db) {
   return rows.map(toStaffOrder);
 }
 
-export async function updateStatus(db, id, to, username) {
+export async function updateStatus(db, id, to, username, cancelReason = null) {
   if (!STATUSES.includes(to)) throw new HttpError(422, 'Status inválido');
   const [current] = await db.query('SELECT * FROM orders WHERE id = $1', [id]);
   if (!current) throw new HttpError(404, 'Pedido não encontrado');
@@ -221,13 +228,56 @@ export async function updateStatus(db, id, to, username) {
   }
   const [row] = await db.query(
     `WITH o AS (
-       UPDATE orders SET status = $2, updated_at = now() WHERE id = $1 AND status = $3 RETURNING *
+       UPDATE orders SET status = $2, updated_at = now(), cancel_reason = CASE WHEN $2 = 'cancelado' THEN $5 ELSE cancel_reason END
+        WHERE id = $1 AND status = $3 RETURNING *
      ), h AS (
        INSERT INTO order_status_history (order_id, status, changed_by) SELECT id, status, $4 FROM o
      )
      SELECT * FROM o`,
-    [id, to, current.status, username]
+    [id, to, current.status, username, cancelReason]
   );
   if (!row) throw new HttpError(409, 'O pedido foi alterado por outra pessoa. Atualize a tela.');
   return toStaffOrder(row);
+}
+
+// Detalhe de um pedido com o histórico de quem mudou cada status
+export async function getOrderDetail(db, id) {
+  const [row] = await db.query('SELECT * FROM orders WHERE id = $1', [id]);
+  if (!row) throw new HttpError(404, 'Pedido não encontrado');
+  const history = await db.query('SELECT status, changed_by, created_at FROM order_status_history WHERE order_id = $1 ORDER BY created_at', [id]);
+  return {
+    ...toStaffOrder(row),
+    history: history.map(h => ({ status: h.status, label: STATUS_LABELS[h.status], by: h.changed_by, at: new Date(h.created_at).toISOString() })),
+  };
+}
+
+const PAGE_SIZE = 50;
+
+/** Busca de pedidos por período (datas de Brasília), texto (código, nome, telefone) e status. */
+export async function searchOrders(db, { from, to, q = '', status = '', page = 1 }) {
+  const params = [from, to];
+  let where = `created_at >= ($1::date)::timestamp AT TIME ZONE 'America/Sao_Paulo'
+           AND created_at <  ($2::date + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo'`;
+  if (STATUSES.includes(status)) {
+    params.push(status);
+    where += ` AND status = $${params.length}`;
+  }
+  const term = String(q).trim().slice(0, 60);
+  if (term) {
+    const digits = term.replace(/\D/g, '');
+    params.push(`%${term.toLowerCase()}%`);
+    const nameIdx = params.length;
+    const conds = [`lower(customer_name) LIKE $${nameIdx}`];
+    if (digits) {
+      params.push(Number(digits.slice(0, 12)));
+      conds.push(`id = $${params.length}`);
+      params.push(`%${digits}%`);
+      conds.push(`customer_phone LIKE $${params.length}`);
+    }
+    where += ` AND (${conds.join(' OR ')})`;
+  }
+  const offset = (Math.max(1, Math.floor(Number(page)) || 1) - 1) * PAGE_SIZE;
+  const [{ n }] = await db.query(`SELECT count(*)::int AS n FROM orders WHERE ${where}`, params);
+  const rows = await db.query(`SELECT * FROM orders WHERE ${where} ORDER BY created_at DESC LIMIT ${PAGE_SIZE} OFFSET ${offset}`, params);
+  return { orders: rows.map(toStaffOrder), total: n, pageSize: PAGE_SIZE };
 }

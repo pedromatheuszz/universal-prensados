@@ -1,6 +1,9 @@
 node_modules/
 dist/
-src/generated/
-public/images/
+site/src/generated/
+site/public/images/
+site/dist/
+app/node_modules/
+app/dist/
 test-results/
 playwright-report/

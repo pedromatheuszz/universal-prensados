@@ -1,8 +1,10 @@
 # Netlify Configuration for Universal Prensados
-# Hospedagem oficial: Netlify (o painel /admin usa Netlify Identity + Git Gateway)
+# Hospedagem oficial: Netlify. Publica o site dos clientes (site/) e a API (netlify/functions).
+# O app de gestão (app/) é um programa de Windows e não é publicado aqui.
+# O /admin (Decap CMS) usa Netlify Identity + Git Gateway e só edita textos do site.
 [build]
   command = "npm run build"
-  publish = "dist"
+  publish = "site/dist"
 
 # API de pedidos (Netlify Functions). Variáveis no painel do Netlify:
 # DATABASE_URL (Neon) e SESSION_SECRET (32+ caracteres aleatórios)
@@ -36,13 +38,7 @@
   [headers.values]
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' https://unpkg.com https://identity.netlify.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://unpkg.com https://api.netlify.com https://*.netlify.app https://*.netlify.com; frame-src 'self' https://identity.netlify.com; base-uri 'self';"
 
-# Painel da equipe e acompanhamento: fora do Google e sem cache
-[[headers]]
-  for = "/painel/*"
-  [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
-    Cache-Control = "no-store"
-
+# Acompanhamento do pedido: fora do Google
 [[headers]]
   for = "/pedido/*"
   [headers.values]

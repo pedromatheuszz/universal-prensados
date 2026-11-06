@@ -2,14 +2,15 @@
 import { getDb } from '../../server/db.js';
 import { handle, json, readJson, clientIpHash, methodNotAllowed, HttpError } from '../../server/http.js';
 import { buildOrder, insertOrder, countRecentOrdersByIp, orderCode } from '../../server/orders.js';
+import { getPricingCatalog } from '../../server/catalog.js';
 
 const MAX_ORDERS_PER_10_MIN = 8;
 
 export default handle(async (req, context) => {
   if (req.method !== 'POST') return methodNotAllowed(['POST']);
 
-  const order = buildOrder(await readJson(req));
   const db = getDb();
+  const order = buildOrder(await readJson(req), await getPricingCatalog(db));
   const ipHash = clientIpHash(req, context);
   if (await countRecentOrdersByIp(db, ipHash) >= MAX_ORDERS_PER_10_MIN) {
     throw new HttpError(429, 'Muitos pedidos em pouco tempo. Aguarde alguns minutos ou fale com a gente no WhatsApp.');

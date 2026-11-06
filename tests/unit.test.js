@@ -6,8 +6,10 @@
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'child_process';
 import fs from 'fs';
-import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag, getStoreStatus } from '../src/utils.js';
-import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../src/pricing.js';
+import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag } from '../site/src/utils.js';
+import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../shared/pricing.js';
+import { getStoreStatus, normalizeHours } from '../shared/store-hours.js';
+import { resolveImage } from '../shared/images.js';
 
 describe('formatBRL', () => {
   it('formata valores em reais', () => {
@@ -136,9 +138,11 @@ describe('normalizeStr / bairros', () => {
   });
 });
 
-describe('catálogo gerado do CMS', () => {
-  execSync('node scripts/build-catalog.js', { stdio: 'pipe' });
-  const catalog = JSON.parse(fs.readFileSync('src/generated/catalog.json', 'utf8'));
+describe('cópia do cardápio embutida no site (db/seed)', () => {
+  execSync('node site/scripts/build-catalog.js', { stdio: 'pipe', env: { ...process.env, DATABASE_URL: '' } });
+  const imageMap = JSON.parse(fs.readFileSync('site/src/generated/image-map.json', 'utf8'));
+  const raw = JSON.parse(fs.readFileSync('site/src/generated/catalog.json', 'utf8'));
+  const catalog = { ...raw, products: raw.products.map(p => ({ ...p, image: resolveImage(p.image, imageMap) })) };
 
   it('tem produtos válidos e ordenados', () => {
     expect(catalog.products.length).toBeGreaterThan(0);
@@ -156,7 +160,7 @@ describe('catálogo gerado do CMS', () => {
 
   it('usa imagens otimizadas que existem em disco', () => {
     for (const p of catalog.products.filter(p => p.image.key)) {
-      expect(fs.existsSync(`public/images/optimized/${p.image.key}.webp`)).toBe(true);
+      expect(fs.existsSync(`site/public/images/optimized/${p.image.key}.webp`)).toBe(true);
     }
   });
 
@@ -185,5 +189,26 @@ describe('getStoreStatus (horário de Brasília, UTC-3)', () => {
   it('pula o domingo', () => {
     // sábado 23:45 → próxima abertura é segunda
     expect(getStoreStatus(new Date('2026-11-08T02:45:00Z')).label).toBe('Fechado • Abrimos segunda às 19:00');
+  });
+});
+
+describe('getStoreStatus com horários e pausa do app de gestão', () => {
+  const thursday20h = new Date('2026-11-05T23:00:00Z');
+  it('pausa manual fecha a loja mesmo dentro do horário', () => {
+    expect(getStoreStatus(thursday20h, { paused: true, pauseMessage: 'Sem gás' })).toEqual({ open: false, paused: true, label: 'Pausado • Sem gás' });
+  });
+
+  it('usa a grade de horários informada', () => {
+    const hours = Array(7).fill(null);
+    hours[4] = { open: '18:00', close: '22:00' }; // quinta
+    expect(getStoreStatus(thursday20h, { hours }).label).toBe('Aberto agora • Pedidos até 22:00');
+    hours[4] = null;
+    hours[1] = { open: '18:00', close: '22:00' };
+    expect(getStoreStatus(thursday20h, { hours }).label).toBe('Fechado • Abrimos segunda às 18:00');
+  });
+
+  it('valida a grade', () => {
+    expect(() => normalizeHours([])).toThrow(/7 dias/);
+    expect(() => normalizeHours(Array(7).fill({ open: '25:00', close: '23:00' }))).toThrow(/inválido/);
   });
 });

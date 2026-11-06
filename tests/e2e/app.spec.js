@@ -3,6 +3,21 @@
  */
 
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
+
+// O e2e roda no build (vite preview), que não tem a API. Simulamos /api/catalog com a
+// loja aberta o dia todo (o teste não depende do horário em que roda) e /api/coupons.
+const catalog = JSON.parse(fs.readFileSync('site/src/generated/catalog.json', 'utf8'));
+const allDay = Array(7).fill({ open: '00:00', close: '23:59' });
+
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/catalog', route => route.fulfill({
+    json: { ...catalog, removals: [], settings: { ...catalog.settings, hours: allDay }, status: { open: true, label: 'Aberto agora • Pedidos até 23:59' } },
+  }));
+  await page.route('**/api/coupons/*', route => (route.request().url().endsWith('/BEMVINDO10')
+    ? route.fulfill({ json: { code: 'BEMVINDO10', discountPercent: 10, description: '' } })
+    : route.fulfill({ status: 404, json: { error: 'Cupom inválido ou expirado' } })));
+});
 
 test.describe('Universal Prensados - Core Functionality', () => {
   test.beforeEach(async ({ page }) => {

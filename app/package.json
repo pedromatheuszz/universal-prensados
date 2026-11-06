@@ -16,7 +16,7 @@
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@fontsource/poppins": "^5.3.0",
     "electron": "45.2.3",
-    "electron-builder": "26.0.12"
+    "electron-builder": "26.18.0"
   },
   "build": {
     "appId": "br.com.universalprensados.gestao",
@@ -41,6 +41,18 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "Universal Gestão"
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "toolsets": {
+      "winCodeSign": "1.1.0"
     }
   },
   "allowScripts": {

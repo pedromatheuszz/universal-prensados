@@ -24,20 +24,8 @@
   <meta name="theme-color" content="#f26a1b" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#070c1c" media="(prefers-color-scheme: dark)">
 
-  <!-- Content Security Policy (fallback for static hosting) -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://www.google.com https://www.gstatic.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: https: blob:;
-    connect-src 'self' https://viacep.com.br https://wa.me https://www.google.com https://maps.googleapis.com https://maps.gstatic.com;
-    frame-src https://www.google.com https://maps.google.com;
-    worker-src 'self' blob:;
-    manifest-src 'self';
-    base-uri 'self';
-    form-action 'self' https://wa.me;
-  ">
+  <!-- CSP (cópia da política enviada no cabeçalho pelo netlify.toml). Ao ligar analytics, libere o domínio aqui e lá. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://viacep.com.br; frame-src https://www.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
 </head>
 <body>
 
@@ -380,7 +368,7 @@
               <span class="contact-icon">📱</span>
               <div>
                 <strong>WhatsApp / Pedidos</strong>
-                <p><a href="https://wa.me/5547996366274" target="_blank" rel="noopener">(47) 99636-6274</a></p>
+                <p><a href="https://wa.me/5547996366274" target="_blank" rel="noopener" data-whatsapp-text>(47) 99636-6274</a></p>
               </div>
             </div>
           </div>
@@ -677,8 +665,8 @@
           <!-- Pix Box Details -->
           <div class="payment-box-detail pix-box" id="pix-box">
             <p>Chave Pix (Telefone / WhatsApp da Universal Prensados):</p>
-            <div class="pix-key-display">
-              <code>47996366274</code>
+            <div class="pix-key-display" id="pix-key-display">
+              <code id="pix-key-text">47996366274</code>
               <button type="button" class="btn btn--sm btn--primary" id="copy-pix-btn">Copiar Chave</button>
             </div>
             <small class="text-muted">Você pode realizar o Pix agora ou após o envio do pedido no WhatsApp.</small>

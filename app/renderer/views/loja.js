@@ -110,13 +110,14 @@ export default {
         storeName: input({ value: settings.storeName, disabled: !editable }),
         whatsappPhone: input({ value: settings.whatsappPhone, disabled: !editable, placeholder: '5547999999999' }),
         freeShipping: input({ value: moneyInput(settings.freeShippingThreshold), money: true, disabled: !editable }),
+        pixKey: input({ value: settings.pixKey || '', disabled: !editable, maxlength: 80, placeholder: 'Telefone, e-mail, CPF/CNPJ ou chave aleatória' }),
       };
       const info = card({
         tag: 'form', title: 'Dados da loja', subtitle: 'Aparecem no site e na comanda.', icon: 'info',
         onsubmit: async (e) => {
           e.preventDefault();
           try {
-            await patch('/api/admin/store', { storeName: f.storeName.value, whatsappPhone: f.whatsappPhone.value, freeShippingThreshold: parseMoney(f.freeShipping.value) });
+            await patch('/api/admin/store', { storeName: f.storeName.value, whatsappPhone: f.whatsappPhone.value, pixKey: f.pixKey.value, freeShippingThreshold: parseMoney(f.freeShipping.value) });
             toast('Dados da loja salvos');
             load();
           } catch (error) { toast(error.message, 'error'); }
@@ -126,6 +127,7 @@ export default {
         field('Nome', f.storeName),
         h('div', { class: 'form-grid' },
           field('WhatsApp que recebe os pedidos', f.whatsappPhone, '55 + DDD + número'),
+          field('Chave Pix', f.pixKey, 'Aparece no checkout e na mensagem do pedido'),
           field('Frete grátis a partir de (R$)', f.freeShipping, '0 = nunca cobrar entrega')),
         editable ? h('div', {}, btn('Salvar dados', { icon: 'check', kind: 'primary', type: 'submit' })) : null));
 
@@ -146,7 +148,7 @@ export default {
           h('strong', {}, DAYS[day]), h('label', { class: 'check' }, open, 'Abre'), h('div', {}, times, closed)) };
       });
       const hours = card({
-        tag: 'form', title: 'Horário de funcionamento', subtitle: 'Horário de Brasília. Fora dele o site mostra a loja fechada.', icon: 'clock',
+        tag: 'form', title: 'Horário de funcionamento', subtitle: 'Horário de Brasília. Para fechar depois da meia-noite, use o horário do dia seguinte (ex.: 18:00 às 01:00).', icon: 'clock',
         onsubmit: async (e) => {
           e.preventDefault();
           const grid = Array(7).fill(null);

@@ -33,6 +33,7 @@ export function canTransition(from, to) {
 
 const PAYMENT_METHODS = ['pix', 'cartao', 'dinheiro'];
 const MAX_ITEMS = 40;
+const MAX_QTY = 99;
 
 const text = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
 
@@ -78,9 +79,12 @@ export function buildOrder(input, { products, settings, extras }, now = new Date
   if (!paymentMethod) errors.push('Escolha a forma de pagamento');
   const changeFor = paymentMethod === 'dinheiro' ? text(body.payment?.changeFor, 20) || null : null;
 
-  const rawItems = Array.isArray(body.items) ? body.items.slice(0, MAX_ITEMS) : [];
+  const rawItems = Array.isArray(body.items) ? body.items : [];
   if (rawItems.length === 0) errors.push('O carrinho está vazio');
-  const cleanItems = rawItems.map(item => ({
+  // nada é descartado em silêncio: o total cobrado precisa bater com o que o cliente escolheu
+  if (rawItems.length > MAX_ITEMS) errors.push(`O pedido pode ter no máximo ${MAX_ITEMS} itens diferentes`);
+  if (rawItems.some(item => Number(item?.qty) > MAX_QTY)) errors.push(`Máximo de ${MAX_QTY} unidades por item`);
+  const cleanItems = rawItems.slice(0, MAX_ITEMS).map(item => ({
     id: item?.id,
     qty: item?.qty,
     extras: (Array.isArray(item?.extras) ? item.extras : []).map(e => ({ name: typeof e === 'string' ? e : e?.name })),
@@ -88,13 +92,20 @@ export function buildOrder(input, { products, settings, extras }, now = new Date
     notes: text(item?.notes, 300),
   }));
   const items = repriceCart(cleanItems, products, extras);
-  if (rawItems.length > 0 && items.length !== rawItems.length) errors.push('Algum item do carrinho não está mais disponível');
+  if (cleanItems.length > 0 && items.length !== cleanItems.length) {
+    errors.push('Algum item do carrinho não está mais disponível');
+  } else if (items.some((item, i) => products.get(item.id)?.hasExtras && item.extras.length !== cleanItems[i].extras.length)) {
+    errors.push('Algum adicional escolhido não está mais disponível');
+  }
   const soldOut = items.filter(i => products.get(i.id)?.soldOut);
   if (soldOut.length) errors.push(`Esgotado no momento: ${soldOut.map(i => i.name).join(', ')}`);
 
   if (errors.length) throw new HttpError(422, errors[0], errors);
 
   const coupon = body.couponCode ? findCoupon(body.couponCode, settings.coupons) : null;
+  if (body.couponCode && !coupon) {
+    throw new HttpError(422, 'Cupom inválido ou expirado. Remova o cupom para continuar.', { field: 'couponCode' });
+  }
   const subtotal = calcSubtotal(items);
   const discount = calcDiscount(subtotal, coupon);
   const fee = calcDeliveryFee({

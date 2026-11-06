@@ -81,7 +81,9 @@ export default handle(async (req, context) => {
     await r.save(db, item);
   }
   const action = onlyStock ? (body.soldOut ? 'produto.esgotado' : 'produto.disponivel') : `${r.label}.editar`;
-  await audit(db, user.username, action, { [r.key]: existing[r.key], name: item.name, changes: body });
+  // registra os campos alterados já validados (não o corpo bruto da requisição)
+  const changes = Object.fromEntries(Object.keys(body).filter(k => k in item).map(k => [k, item[k]]));
+  await audit(db, user.username, action, { [r.key]: existing[r.key], name: item.name, changes });
   return json(await getFullCatalog(db));
 });
 

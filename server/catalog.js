@@ -6,12 +6,14 @@ import { CATEGORIES, REMOVALS } from '../shared/menu-options.js';
 import { DEFAULT_HOURS, normalizeHours, getStoreStatus } from '../shared/store-hours.js';
 
 const num = (v) => Math.round(Number(v ?? 0) * 100) / 100;
+const IMAGE_RE = /^(\/images\/[\w\-/]+\/)?[\w-]+\.(png|jpe?g|webp|avif)$/i;
 const CATEGORY_IDS = CATEGORIES.map(c => c.id);
 
 // Valores padrão de cada configuração da loja
 export const STORE_DEFAULTS = {
   storeName: 'Universal Prensados',
   whatsappPhone: '',
+  pixKey: '',
   freeShippingThreshold: 70,
   hours: DEFAULT_HOURS,
   paused: false,
@@ -78,7 +80,7 @@ export async function getPricingCatalog(db) {
   };
 }
 
-/** Visão pública para o site (sem itens inativos). */
+/** Visão pública para o site (sem itens inativos nem a lista de cupons). */
 export async function getPublicCatalog(db, now = new Date()) {
   const full = await getFullCatalog(db);
   const s = full.settings;
@@ -89,10 +91,11 @@ export async function getPublicCatalog(db, now = new Date()) {
     settings: {
       storeName: s.storeName,
       whatsappPhone: s.whatsappPhone,
+      pixKey: s.pixKey,
       freeShippingThreshold: s.freeShippingThreshold,
       hours: s.hours,
       districts: full.districts.filter(d => d.active).map(({ name, fee, slug }) => ({ name, fee, slug })),
-      coupons: full.coupons.filter(c => c.active).map(({ code, discountPercent, description }) => ({ code, discountPercent, description })),
+      // cupons não são listados: o site confere o código digitado em /api/coupons/:code
     },
     status: getStoreStatus(now, s),
   };
@@ -125,6 +128,8 @@ export function validateProduct(input, existing = null) {
     order: int(b.order, existing?.order ?? 9999),
   };
   if (!/^[a-z0-9_]{2,40}$/.test(p.id)) throw new HttpError(422, 'Código do produto: use de 2 a 40 letras minúsculas, números ou _');
+  // só arquivos de imagem do próprio site (nada de endereços externos ou HTML)
+  if (p.image && !IMAGE_RE.test(p.image)) throw new HttpError(422, 'Imagem: informe o nome do arquivo, ex.: dogzao.png');
   if (!p.name || p.name.length < 2) throw new HttpError(422, 'Informe o nome do produto');
   if (!CATEGORY_IDS.includes(p.category)) throw new HttpError(422, 'Categoria inválida');
   if (p.price === undefined) throw new HttpError(422, 'Informe o preço');
@@ -185,6 +190,10 @@ export function validateStoreSettings(input) {
   if (b.whatsappPhone !== undefined) {
     out.whatsappPhone = String(b.whatsappPhone).replace(/\D/g, '');
     if (!/^\d{12,13}$/.test(out.whatsappPhone)) throw new HttpError(422, 'WhatsApp: use 55 + DDD + número');
+  }
+  if (b.pixKey !== undefined) {
+    out.pixKey = str(b.pixKey, 80);
+    if (out.pixKey && !/^[\w.@+-]{5,80}$/.test(out.pixKey)) throw new HttpError(422, 'Chave Pix inválida (use telefone, e-mail, CPF/CNPJ ou chave aleatória, sem espaços)');
   }
   if (b.freeShippingThreshold !== undefined) out.freeShippingThreshold = money(b.freeShippingThreshold, 'Valor do frete grátis');
   if (b.hours !== undefined) {

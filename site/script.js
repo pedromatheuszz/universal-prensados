@@ -9,7 +9,7 @@
 
 import { PRODUCTS, PRODUCTS_BY_ID, SETTINGS, EXTRAS, EXTRAS_BY_NAME, loadLiveCatalog, currentStoreStatus } from "./src/catalog.js";
 import { formatBRL, escapeHTML, normalizeStr, createOptimizedPicture, createOptimizedImageTag } from "./src/utils.js";
-import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from "../shared/pricing.js";
+import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, repriceCart } from "../shared/pricing.js";
 import { REMOVALS } from "../shared/menu-options.js";
 import { WEEKDAYS } from "../shared/store-hours.js";
 import { initAnimations, revealProducts, filterProducts, flyToCart, revealCartItems } from "./src/animations.js";
@@ -21,6 +21,9 @@ initAnalytics();
 // --- 2. GLOBAL STATE ---
 let cart = [];
 let appliedCoupon = null; // { code: 'BEMVINDO10', discountPercent: 10 }
+// Mesmos limites do servidor (server/orders.js)
+const MAX_QTY = 99;
+const MAX_LINES = 40;
 let currentCustomizingItem = null;
 let currentModalQty = 1;
 // Adicionais válidos (nome → { name, price }), lidos do modal no carregamento
@@ -53,6 +56,39 @@ function renderBusinessHours() {
     const days = g.days.length > 1 ? `${cap(WEEKDAYS[g.days[0]])} a ${WEEKDAYS[g.days[g.days.length - 1]]}` : cap(WEEKDAYS[g.days[0]]);
     return g.key ? `${escapeHTML(days)}: ${escapeHTML(g.key)}` : `<span class="text-muted">${escapeHTML(days)}: Fechado</span>`;
   }).join('<br>');
+}
+
+// Remove o cupom aplicado (pelo cliente ou quando o servidor diz que ele não vale mais)
+function clearCoupon(message) {
+  appliedCoupon = null;
+  const input = document.getElementById('cart-coupon-input');
+  const msg = document.getElementById('coupon-feedback-msg');
+  if (input) input.value = '';
+  if (msg) {
+    msg.className = 'coupon-feedback';
+    msg.textContent = message || '';
+  }
+  updateCartUI();
+  updateCheckoutSummary();
+}
+
+// Chave Pix e links de WhatsApp vêm das configurações da loja (editadas no app de gestão)
+function renderStoreContacts() {
+  const phone = SETTINGS.whatsappPhone;
+  if (/^\d{12,13}$/.test(phone || '')) {
+    document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a => {
+      const url = new URL(a.href);
+      url.pathname = `/${phone}`;
+      a.href = url.toString();
+    });
+    const local = phone.replace(/^55/, '');
+    const pretty = local.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3');
+    document.querySelectorAll('[data-whatsapp-text]').forEach(el => { el.textContent = pretty; });
+  }
+  const pixBox = document.getElementById('pix-key-display');
+  const pixText = document.getElementById('pix-key-text');
+  if (pixText) pixText.textContent = SETTINGS.pixKey || '';
+  if (pixBox) pixBox.hidden = !SETTINGS.pixKey;
 }
 
 // Bloqueia o pedido com a loja fechada ou pausada (o servidor também recusa)
@@ -178,10 +214,13 @@ function renderProducts(filterCategory = 'todos') {
     container.append(...cards);
 
     // O card inteiro abre a personalização; o botão garante acesso pelo teclado
-    container.addEventListener('click', (e) => {
-      const card = e.target.closest('.product-card');
-      if (card) openCustomizerModal(card.dataset.id);
-    });
+    if (!container.dataset.bound) {
+      container.dataset.bound = '1';
+      container.addEventListener('click', (e) => {
+        const card = e.target.closest('.product-card');
+        if (card) openCustomizerModal(card.dataset.id);
+      });
+    }
 
     cards.forEach(card => { card.hidden = filterCategory !== 'todos' && card.dataset.category !== filterCategory; });
     revealProducts(cards.filter(c => !c.hidden));
@@ -308,6 +347,10 @@ function saveCartToStorage() {
 }
 
 function addToCart(item, extras = [], removals = [], notes = '', qty = 1) {
+  if (cart.length >= MAX_LINES) {
+    showToast(`O carrinho aceita até ${MAX_LINES} itens diferentes. Aumente a quantidade de um item já escolhido.`, '⚠️');
+    return;
+  }
   const [cartItem] = repriceCart([{ id: item.id, qty, extras, removals, notes }], PRODUCTS_BY_ID, extrasByName);
   if (!cartItem) return;
   const { unitPrice } = cartItem;
@@ -325,7 +368,7 @@ function addToCart(item, extras = [], removals = [], notes = '', qty = 1) {
 function updateCartItemQty(index, delta) {
   if (!cart[index]) return;
 
-  cart[index].qty += delta;
+  cart[index].qty = Math.min(MAX_QTY, cart[index].qty + delta);
   if (cart[index].qty <= 0) {
     cart.splice(index, 1);
     showToast('Item removido do carrinho.', '🗑️');
@@ -574,7 +617,9 @@ async function submitOrderToApi(payload) {
     const data = await res.json().catch(() => ({}));
     if (res.ok) return { ok: true, data };
     // 4xx de validação: o cliente precisa corrigir algo
-    if (res.status === 409 || res.status === 422 || res.status === 429) return { ok: false, userError: data.error || 'Confira os dados do pedido.' };
+    if (res.status === 409 || res.status === 422 || res.status === 429) {
+      return { ok: false, userError: data.error || 'Confira os dados do pedido.', field: data.details?.field };
+    }
     return { ok: false };
   } catch {
     return { ok: false };
@@ -690,6 +735,12 @@ async function processOrder(e) {
 
   if (result.userError) {
     waWindow?.close();
+    if (result.field === 'couponCode') {
+      // o cupom deixou de valer: tira do pedido e mostra o total sem desconto
+      clearCoupon('Este cupom não vale mais e foi removido.');
+      showToast('O cupom não vale mais e foi removido. Confira o total e envie de novo.', '⚠️');
+      return;
+    }
     showToast(result.userError, '⚠️');
     return;
   }
@@ -719,7 +770,7 @@ async function processOrder(e) {
   }
 
   const paymentText = paymentMethod === 'pix'
-    ? '⚡ Pix (Chave: 47996366274)'
+    ? (SETTINGS.pixKey ? `⚡ Pix (Chave: ${SETTINGS.pixKey})` : '⚡ Pix')
     : paymentMethod === 'cartao'
       ? '💳 Cartão na Entrega (Maquininha)'
       : `💵 Dinheiro ${changeFor ? `(Troco para: ${changeFor})` : '(Sem troco)'}`;
@@ -764,39 +815,74 @@ async function processOrder(e) {
   updateCartUI();
 }
 
-// --- 11. INITIALIZATION & DOM EVENTS ---
-document.addEventListener('DOMContentLoaded', async () => {
-  // Load Theme
-  initThemeEngine();
+// Bairros e taxas cadastrados no app de gestão (mantém o bairro já escolhido, se ainda existir)
+function renderDistricts() {
+  const select = document.getElementById('order-district');
+  if (!select) return;
+  const current = select.value;
+  select.querySelectorAll('option[data-fee]').forEach(o => o.remove());
+  SETTINGS.districts.forEach(d => {
+    const option = document.createElement('option');
+    option.value = d.name;
+    option.dataset.fee = String(d.fee);
+    option.textContent = `${d.name} (Taxa: ${formatBRL(d.fee)})`;
+    select.appendChild(option);
+  });
+  if (current && SETTINGS.districts.some(d => d.name === current)) select.value = current;
+}
 
-  // Cardápio, preços, bairros e situação da loja atualizados pelo app de gestão
-  await loadLiveCatalog({ timeoutMs: 2500 });
+// Partes da página que dependem do cardápio e das configurações da loja
+function renderCatalogDependent() {
   renderBusinessHours();
-
-  // Status de funcionamento (aberto/fechado) no hero
+  renderStoreContacts();
   updateStoreStatus();
-  setInterval(updateStoreStatus, 60 * 1000);
   const statProducts = document.getElementById('stat-products');
   if (statProducts) {
     statProducts.dataset.count = String(PRODUCTS.length);
     statProducts.textContent = String(PRODUCTS.length);
   }
-
   // Adicionais (do banco, via /api/catalog) e remoções (shared/menu-options.js) do modal
   renderMenuOptions();
   extrasByName = EXTRAS_BY_NAME;
+  renderDistricts();
+}
 
-  // Bairros e taxas cadastrados no app de gestão
-  const districtSelectEl = document.getElementById('order-district');
-  if (districtSelectEl) {
-    SETTINGS.districts.forEach(d => {
-      const option = document.createElement('option');
-      option.value = d.name;
-      option.dataset.fee = String(d.fee);
-      option.textContent = `${d.name} (Taxa: ${formatBRL(d.fee)})`;
-      districtSelectEl.appendChild(option);
+// O cardápio mudou depois que a página abriu (API lenta ou alteração feita no app de gestão)
+function refreshCatalogUI() {
+  renderCatalogDependent();
+  const container = document.getElementById('products-container');
+  container?.querySelectorAll('.product-card').forEach(card => card.remove());
+  renderProducts(document.querySelector('.menu-tab-btn.active')?.dataset.category || 'todos');
+  // preços e disponibilidade do carrinho seguem o cardápio novo
+  cart = repriceCart(cart, PRODUCTS_BY_ID, extrasByName);
+  saveCartToStorage();
+  updateCartUI();
+  updateCheckoutSummary();
+}
+
+// --- 11. INITIALIZATION & DOM EVENTS ---
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load Theme
+  initThemeEngine();
+
+  // Cardápio, preços, bairros e situação da loja atualizados pelo app de gestão.
+  // Espera no máximo 2,5 s; se a API estiver lenta, abre com a cópia do build e atualiza quando chegar.
+  const live = loadLiveCatalog({ timeoutMs: 15000 });
+  const first = await Promise.race([live, new Promise(resolve => setTimeout(() => resolve(null), 2500))]);
+  if (!first) live.then(({ changed }) => { if (changed) refreshCatalogUI(); });
+  // confere mudanças (esgotado, preço, pausa) a cada 2 minutos com a página aberta
+  setInterval(() => {
+    if (document.hidden) return;
+    loadLiveCatalog().then(({ live: ok, changed }) => {
+      if (changed) refreshCatalogUI();
+      else if (ok) updateStoreStatus();
     });
-  }
+  }, 2 * 60 * 1000);
+
+  renderCatalogDependent();
+
+  // Status de funcionamento (aberto/fechado) no hero
+  setInterval(updateStoreStatus, 60 * 1000);
 
   // Load Saved Cart
   loadCartFromStorage();
@@ -868,9 +954,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     customModalClose.addEventListener('click', closeCustomizerModal);
   }
 
-  // Checkbox change updates total in customizer
-  document.querySelectorAll('#custom-modal input[name="extra"]').forEach(cb => {
-    cb.addEventListener('change', updateModalTotal);
+  // Checkbox change updates total in customizer (delegação: os adicionais podem ser re-renderizados)
+  document.getElementById('custom-modal')?.addEventListener('change', (e) => {
+    if (e.target.matches('input[name="extra"]')) updateModalTotal();
   });
 
   // Quantity in modal
@@ -890,6 +976,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (plusBtn) {
     plusBtn.addEventListener('click', () => {
+      if (currentModalQty >= MAX_QTY) return;
       currentModalQty++;
       qtyValEl.textContent = currentModalQty;
       updateModalTotal();
@@ -955,24 +1042,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   const couponMsg = document.getElementById('coupon-feedback-msg');
 
   if (applyCouponBtn && couponInput) {
-    applyCouponBtn.addEventListener('click', () => {
+    // O cupom é conferido no servidor (a lista de cupons não é pública). Campo vazio remove o cupom.
+    applyCouponBtn.addEventListener('click', async () => {
       const code = couponInput.value.trim().toUpperCase();
-      const coupon = findCoupon(code, SETTINGS.coupons);
+      if (!code) {
+        if (appliedCoupon) {
+          clearCoupon('Cupom removido.');
+        } else {
+          couponMsg.className = 'coupon-feedback error';
+          couponMsg.textContent = 'Digite um cupom válido.';
+        }
+        return;
+      }
+      applyCouponBtn.disabled = true;
+      let coupon = null;
+      let offline = false;
+      try {
+        const res = await fetch(`/api/coupons/${encodeURIComponent(code)}`, { headers: { Accept: 'application/json' } });
+        if (res.ok) coupon = await res.json();
+        else if (res.status !== 404) offline = true;
+      } catch {
+        offline = true;
+      } finally {
+        applyCouponBtn.disabled = false;
+      }
       if (coupon) {
         appliedCoupon = { code: coupon.code, discountPercent: coupon.discountPercent };
         couponMsg.className = 'coupon-feedback success';
-        couponMsg.textContent = `Cupom aplicado! ${coupon.discountPercent}% de desconto.`;
+        couponMsg.textContent = `Cupom aplicado! ${coupon.discountPercent}% de desconto. Para remover, apague o código e clique em aplicar.`;
         updateCartUI();
         showToast(`Desconto de ${coupon.discountPercent}% aplicado no pedido!`, '🎉');
 
         // Analytics: Track Coupon Application
         trackApplyCoupon(coupon.code, getCartDiscount());
-      } else if (!code) {
-        couponMsg.className = 'coupon-feedback error';
-        couponMsg.textContent = 'Digite um cupom válido.';
       } else {
         couponMsg.className = 'coupon-feedback error';
-        couponMsg.textContent = 'Cupom inválido ou expirado.';
+        couponMsg.textContent = offline ? 'Não foi possível conferir o cupom agora. Tente de novo em instantes.' : 'Cupom inválido ou expirado.';
       }
     });
   }
@@ -1169,7 +1274,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Copy Pix Key Button
   document.getElementById('copy-pix-btn')?.addEventListener('click', () => {
-    navigator.clipboard.writeText('47996366274').then(() => {
+    if (!SETTINGS.pixKey) return;
+    navigator.clipboard.writeText(SETTINGS.pixKey).then(() => {
       showToast('Chave Pix copiada com sucesso!', '⚡');
     });
   });

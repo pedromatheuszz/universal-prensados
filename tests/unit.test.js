@@ -207,6 +207,16 @@ describe('getStoreStatus com horários e pausa do app de gestão', () => {
     expect(getStoreStatus(thursday20h, { hours }).label).toBe('Fechado • Abrimos segunda às 18:00');
   });
 
+  it('aceita expediente que passa da meia-noite', () => {
+    const hours = Array(7).fill(null);
+    hours[4] = { open: '18:00', close: '01:00' }; // quinta, fecha sexta 01:00
+    expect(getStoreStatus(new Date('2026-11-05T23:00:00Z'), { hours }).label).toBe('Aberto agora • Pedidos até 01:00'); // quinta 20:00
+    expect(getStoreStatus(new Date('2026-11-06T03:30:00Z'), { hours }).open).toBe(true); // sexta 00:30
+    expect(getStoreStatus(new Date('2026-11-06T04:30:00Z'), { hours }).open).toBe(false); // sexta 01:30
+    expect(() => normalizeHours(Array(7).fill({ open: '18:00', close: '01:00' }))).not.toThrow();
+    expect(() => normalizeHours(Array(7).fill({ open: '18:00', close: '18:00' }))).toThrow(/iguais/);
+  });
+
   it('valida a grade', () => {
     expect(() => normalizeHours([])).toThrow(/7 dias/);
     expect(() => normalizeHours(Array(7).fill({ open: '25:00', close: '23:00' }))).toThrow(/inválido/);

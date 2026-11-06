@@ -9,7 +9,9 @@ import { loadConfig, saveConfig, normalizeServerUrl } from './lib/config.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const RENDERER = path.join(ROOT, 'renderer');
-const DEV = process.argv.includes('--dev');
+// Modo de desenvolvimento só fora do instalador (no app instalado, --dev é ignorado)
+const DEV = !app.isPackaged && process.argv.includes('--dev');
+const REFRESH_MS = 30 * 60 * 1000; // renova o token enquanto o app está aberto
 const REQUEST_TIMEOUT_MS = 15000;
 
 let win = null;
@@ -73,9 +75,21 @@ async function callApi(method, apiPath, body) {
 
 const ALLOWED_METHODS = ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'];
 
+// A interface só pode falar com as rotas da equipe, no servidor configurado.
+// Confere o caminho já resolvido (pega truques como "%2e%2e" e "//outro-host").
+function isAdminPath(apiPath) {
+  if (typeof apiPath !== 'string' || !apiPath.startsWith('/api/admin/')) return false;
+  try {
+    const { serverUrl } = loadConfig();
+    const url = new URL(apiPath, serverUrl);
+    return url.origin === new URL(serverUrl).origin && url.pathname.startsWith('/api/admin/');
+  } catch {
+    return false;
+  }
+}
+
 ipcMain.handle('api:request', async (_e, { method = 'GET', path: apiPath, body } = {}) => {
-  // a interface só pode falar com as rotas da equipe
-  if (!ALLOWED_METHODS.includes(method) || typeof apiPath !== 'string' || !apiPath.startsWith('/api/admin/') || apiPath.includes('..')) {
+  if (!ALLOWED_METHODS.includes(method) || !isAdminPath(apiPath)) {
     return { ok: false, status: 400, data: { error: 'Requisição inválida' } };
   }
   const result = await callApi(method, apiPath, body);
@@ -100,10 +114,22 @@ ipcMain.handle('auth:login', async (_e, { username, password, remember }) => {
   return { ok: true, status: 200, data: { user: result.data.user } };
 });
 
+// Confere a sessão e troca o token por um novo (sessão deslizante)
+async function refreshSession() {
+  const result = await callApi('GET', '/api/admin/session');
+  if (result.ok && typeof result.data?.token === 'string') {
+    token = result.data.token;
+    if (fs.existsSync(sessionFile())) await persistToken(token);
+  }
+  return result;
+}
+
+setInterval(() => { if (token) refreshSession(); }, REFRESH_MS).unref?.();
+
 ipcMain.handle('auth:restore', async () => {
   token = token || (await readPersistedToken());
   if (!token) return null;
-  const result = await callApi('GET', '/api/admin/session');
+  const result = await refreshSession();
   if (result.ok) return result.data.user;
   if (result.status === 401) {
     token = null;
@@ -189,9 +215,15 @@ ipcMain.handle('notify', (_e, { title, body }) => {
   return true;
 });
 
+// Só abre no navegador o WhatsApp e o próprio site (comparando a origem, não o começo do texto:
+// "https://site.com.evil.com" não pode passar por "https://site.com")
 ipcMain.handle('open:external', (_e, url) => {
-  const { serverUrl } = loadConfig();
-  const allowed = typeof url === 'string' && (url.startsWith('https://wa.me/') || url.startsWith(serverUrl));
+  let allowed = false;
+  try {
+    const target = new URL(url);
+    const { serverUrl } = loadConfig();
+    allowed = target.origin === 'https://wa.me' || target.origin === new URL(serverUrl).origin;
+  } catch { /* endereço inválido */ }
   if (allowed) shell.openExternal(url);
   return allowed;
 });
@@ -248,7 +280,7 @@ function createWindow() {
   // nada de navegar para fora da interface; links externos abrem no navegador
   win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('app://')) e.preventDefault(); });
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://wa.me/')) shell.openExternal(url);
+    try { if (new URL(url).origin === 'https://wa.me') shell.openExternal(url); } catch { /* ignorado */ }
     return { action: 'deny' };
   });
 

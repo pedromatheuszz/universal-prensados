@@ -90,7 +90,6 @@ export default defineConfig({
   server: {
     port: 3000,
     open: !process.env.NO_OPEN,
-    cors: true,
     headers: {
       'Service-Worker-Allowed': '/',
     },

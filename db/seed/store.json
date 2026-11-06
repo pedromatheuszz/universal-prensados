@@ -1,6 +1,7 @@
 {
   "storeName": "Universal Prensados",
   "whatsappPhone": "5547996366274",
+  "pixKey": "47996366274",
   "hours": [
     null,
     { "open": "19:00", "close": "23:30" },

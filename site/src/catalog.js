@@ -14,6 +14,8 @@ export let EXTRAS_BY_NAME = new Map();
 export let STORE_STATUS = { open: true, label: '' };
 export let IS_LIVE = false;
 
+let signature = '';
+
 function apply(data, status) {
   PRODUCTS = data.products.map(p => ({ ...p, image: resolveImage(p.image, imageMap) }));
   PRODUCTS_BY_ID = new Map(PRODUCTS.map(p => [p.id, p]));
@@ -24,9 +26,13 @@ function apply(data, status) {
 }
 
 apply(fallback);
+signature = JSON.stringify([fallback.products, fallback.extras, fallback.settings]);
 
-/** Busca o cardápio atual. Em caso de erro ou demora, mantém a cópia do build. */
-export async function loadLiveCatalog({ timeoutMs = 4000 } = {}) {
+/**
+ * Busca o cardápio atual. Em caso de erro, mantém o que já está carregado.
+ * Retorna { live, changed }: changed indica que produtos/preços/configurações mudaram.
+ */
+export async function loadLiveCatalog({ timeoutMs = 15000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -34,14 +40,18 @@ export async function loadLiveCatalog({ timeoutMs = 4000 } = {}) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data.products) || !data.settings) throw new Error('resposta inválida');
+    const next = JSON.stringify([data.products, data.extras, data.settings]);
+    const changed = next !== signature;
+    signature = next;
     apply(data, data.status);
     IS_LIVE = true;
+    return { live: true, changed };
   } catch (error) {
-    console.warn('[cardápio] usando a cópia do build:', error.message);
+    console.warn('[cardápio] mantendo os dados atuais:', error.message);
+    return { live: false, changed: false };
   } finally {
     clearTimeout(timer);
   }
-  return IS_LIVE;
 }
 
 /** Situação da loja agora (recalculada pelo relógio, respeitando a pausa vinda da API). */

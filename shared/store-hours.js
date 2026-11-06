@@ -9,13 +9,16 @@ export const DEFAULT_HOURS = [null, day, day, day, day, day, day];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const toMin = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3));
 
+// Fechamento antes da abertura = passa da meia-noite (ex.: 18:00 às 01:00 fecha no dia seguinte)
+const isOvernight = (h) => toMin(h.close) < toMin(h.open);
+
 /** Valida e normaliza a grade de horários. Lança Error com mensagem amigável. */
 export function normalizeHours(hours) {
   if (!Array.isArray(hours) || hours.length !== 7) throw new Error('Informe o horário dos 7 dias da semana');
   return hours.map((h, i) => {
     if (!h) return null;
     if (!TIME_RE.test(h.open || '') || !TIME_RE.test(h.close || '')) throw new Error(`Horário inválido na ${WEEKDAYS[i]}`);
-    if (toMin(h.close) <= toMin(h.open)) throw new Error(`Na ${WEEKDAYS[i]}, o fechamento precisa ser depois da abertura`);
+    if (h.close === h.open) throw new Error(`Na ${WEEKDAYS[i]}, a abertura e o fechamento não podem ser iguais`);
     return { open: h.open, close: h.close };
   });
 }
@@ -40,7 +43,12 @@ export function getStoreStatus(date, { hours = DEFAULT_HOURS, paused = false, pa
   if (paused) {
     return { open: false, paused: true, label: pauseMessage ? `Pausado • ${pauseMessage}` : 'Pausado • Não estamos recebendo pedidos agora' };
   }
-  if (h && minutes >= toMin(h.open) && minutes < toMin(h.close)) {
+  // madrugada: ainda dentro do expediente que começou ontem
+  const yesterday = hours[(today + 6) % 7];
+  if (yesterday && isOvernight(yesterday) && minutes < toMin(yesterday.close)) {
+    return { open: true, label: `Aberto agora • Pedidos até ${yesterday.close}` };
+  }
+  if (h && minutes >= toMin(h.open) && (isOvernight(h) || minutes < toMin(h.close))) {
     return { open: true, label: `Aberto agora • Pedidos até ${h.close}` };
   }
   if (h && minutes < toMin(h.open)) {

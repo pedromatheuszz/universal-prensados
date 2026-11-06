@@ -19,18 +19,20 @@
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000"
     Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
 
-# CSP do site (o index.html também traz a mesma política em <meta>)
+# CSP do site (o index.html também traz a mesma política em <meta>). Só o necessário:
+# fontes do Google, ViaCEP (busca de CEP) e o mapa do Google em iframe.
 [[headers]]
   for = "/"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://viacep.com.br https://wa.me https://www.google.com https://maps.googleapis.com https://maps.gstatic.com; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self' https://wa.me;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://viacep.com.br; frame-src https://www.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 [[headers]]
   for = "/index.html"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://viacep.com.br https://wa.me https://www.google.com https://maps.googleapis.com https://maps.gstatic.com; frame-src https://www.google.com https://maps.google.com; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self' https://wa.me;"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://viacep.com.br; frame-src https://www.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 
 # Painel Decap CMS: precisa carregar scripts do unpkg e do Netlify Identity
 [[headers]]

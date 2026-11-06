@@ -29,8 +29,8 @@ export default handle(async (req, context) => {
   const body = await readJson(req);
   const target = username.toLowerCase();
   await updateStaff(db, target, body, user.username);
-  const { password, ...logged } = body;
-  await audit(db, user.username, 'equipe.editar', { username: target, ...logged, ...(password ? { senha: 'alterada' } : {}) });
+  const { displayName, role, active, password } = body || {};
+  await audit(db, user.username, 'equipe.editar', { username: target, displayName, role, active, ...(password ? { senha: 'alterada' } : {}) });
 
   // quem trocou a própria senha recebe um token novo para não cair da sessão
   let token;

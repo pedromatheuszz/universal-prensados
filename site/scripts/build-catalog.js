@@ -50,11 +50,10 @@ function fromSeed() {
     settings: {
       storeName: store.storeName,
       whatsappPhone: store.whatsappPhone,
+      pixKey: store.pixKey || '',
       freeShippingThreshold: delivery.freeShippingThreshold,
       hours: store.hours,
       districts: delivery.districts.map(({ name, fee, slug }) => ({ name, fee, slug: slug || name })),
-      coupons: readJSON(path.join(SEED, 'coupons.json')).coupons.filter(c => c.active !== false)
-        .map(c => ({ code: c.code.toUpperCase(), discountPercent: c.discountPercent, description: c.description || '' })),
     },
   };
 }
@@ -66,12 +65,16 @@ if (!/^\d{12,13}$/.test(catalog.settings.whatsappPhone || '')) errors.push('What
 if (!catalog.settings.districts.length) errors.push('nenhum bairro cadastrado');
 if (errors.length) {
   console.error(`\n✗ Cardápio inválido: ${errors.join(', ')}\n`);
-  process.exit(1);
+  process.exitCode = 1;
+} else {
+  writeCatalog();
 }
 
-fs.mkdirSync(OUT_DIR, { recursive: true });
-fs.writeFileSync(path.join(OUT_DIR, 'catalog.json'), JSON.stringify(catalog, null, 2) + '\n');
-// mapa das imagens otimizadas (nome → arquivo com hash), usado para montar as <picture>
-fs.writeFileSync(path.join(OUT_DIR, 'image-map.json'), fs.existsSync(IMAGE_MAP_FILE) ? fs.readFileSync(IMAGE_MAP_FILE) : '{}\n');
-console.log(`✓ Catálogo gerado: ${catalog.products.length} produtos, ${catalog.settings.districts.length} bairros, ${catalog.settings.coupons.length} cupons`);
-process.exit(0);
+// Sem process.exit(): no Windows, encerrar à força com a conexão do banco ainda fechando derruba o Node
+function writeCatalog() {
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.writeFileSync(path.join(OUT_DIR, 'catalog.json'), JSON.stringify(catalog, null, 2) + '\n');
+  // mapa das imagens otimizadas (nome → arquivo com hash), usado para montar as <picture>
+  fs.writeFileSync(path.join(OUT_DIR, 'image-map.json'), fs.existsSync(IMAGE_MAP_FILE) ? fs.readFileSync(IMAGE_MAP_FILE) : '{}\n');
+  console.log(`✓ Catálogo gerado: ${catalog.products.length} produtos, ${catalog.settings.districts.length} bairros`);
+}

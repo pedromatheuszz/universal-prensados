@@ -15,6 +15,7 @@ const fn = async (name) => (await import(`../netlify/functions/${name}.js`)).def
 const createOrder = await fn('orders');
 const track = await fn('track');
 const catalogApi = await fn('catalog');
+const couponsApi = await fn('coupons');
 const session = await fn('admin-session');
 const adminOrders = await fn('admin-orders');
 const reports = await fn('admin-reports');
@@ -113,6 +114,14 @@ describe('buildOrder (validação e preços no servidor)', () => {
     expect(() => buildOrder(validOrder(), paused, OPEN_TIME)).toThrow(/Falta de gás/);
   });
 
+  it('recusa cupom inexistente, itens demais e quantidade acima do limite (nada é descartado em silêncio)', () => {
+    expect(() => build(validOrder({ couponCode: 'NAOEXISTE' }))).toThrow(/Cupom inválido/);
+    const many = Array.from({ length: 41 }, () => ({ id: 'dog', qty: 1 }));
+    expect(() => build(validOrder({ items: many }))).toThrow(/no máximo 40/);
+    expect(() => build(validOrder({ items: [{ id: 'dog', qty: 150 }] }))).toThrow(/Máximo de 99/);
+    expect(() => build(validOrder({ items: [{ id: 'dogzao', qty: 1, extras: ['Adicional Inexistente'] }] }))).toThrow(/adicional/);
+  });
+
   it('recusa produto esgotado', () => {
     const products = new Map(catalog.products);
     products.set('dogzao', { ...products.get('dogzao'), soldOut: true });
@@ -190,8 +199,21 @@ describe('app de gestão: login e permissões', () => {
     expect(res.status).toBe(401);
   });
 
-  it('senha errada é recusada', async () => {
-    expect((await login('dono', 'errada')).status).toBe(401);
+  it('senha errada e usuário inexistente dão a mesma resposta', async () => {
+    const wrong = await login('dono', 'errada');
+    const ghost = await login('fantasma', 'qualquer-coisa');
+    expect(wrong.status).toBe(401);
+    expect(ghost.status).toBe(401);
+    expect(ghost.error).toBe(wrong.error);
+  });
+
+  it('GET da sessão devolve um token renovado', async () => {
+    const first = await login('dono', 'senha-de-teste-123');
+    const res = await session(req('GET', '/api/admin/session', { token: first.token }), ctx());
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.user.username).toBe('dono');
+    expect(body.token).toMatch(/./);
   });
 
   it('login devolve token e permissões do papel', async () => {
@@ -292,6 +314,11 @@ describe('app de gestão: cardápio e loja', () => {
     expect(created.order.total).toBe(12);
   });
 
+  it('recusa imagem que não seja um arquivo do próprio site', async () => {
+    const res = await adminCatalog(req('PATCH', '/api/admin/catalog/products/dog', { token: owner, body: { image: 'https://outro-site.com/x.png' } }), ctx({ params: { resource: 'products', id: 'dog' } }));
+    expect(res.status).toBe(422);
+  });
+
   it('cria produto, bairro e cupom e valida os dados', async () => {
     const create = (resource, body) => adminCatalog(req('POST', `/api/admin/catalog/${resource}`, { token: owner, body }), ctx({ params: { resource } }));
     expect((await create('products', { id: 'x_tudo', name: 'X-Tudo', category: 'especiais', price: '25,90' })).status).toBe(201);
@@ -303,7 +330,10 @@ describe('app de gestão: cardápio e loja', () => {
     const pub = await (await catalogApi(new Request(`${BASE}/api/catalog`), ctx())).json();
     expect(pub.products.find(p => p.id === 'x_tudo').price).toBe(25.9);
     expect(pub.settings.districts.map(d => d.name)).toContain('Vila Nova');
-    expect(pub.settings.coupons.map(c => c.code)).toContain('NATAL15');
+    expect(pub.settings.coupons).toBeUndefined(); // a lista de cupons não é pública
+    const coupon = await couponsApi(new Request(`${BASE}/api/coupons/natal15`), ctx({ params: { code: 'natal15' } }));
+    expect(await coupon.json()).toMatchObject({ code: 'NATAL15', discountPercent: 15 });
+    expect((await couponsApi(new Request(`${BASE}/api/coupons/NAOEXISTE`), ctx({ params: { code: 'NAOEXISTE' } }))).status).toBe(404);
   });
 
   it('pausa a loja e o site recusa pedidos', async () => {
@@ -315,7 +345,7 @@ describe('app de gestão: cardápio e loja', () => {
   });
 
   it('valida a grade de horários', async () => {
-    const hours = Array(7).fill({ open: '20:00', close: '19:00' });
+    const hours = Array(7).fill({ open: '20:00', close: '20:00' });
     const res = await adminStore(req('PATCH', '/api/admin/store', { token: owner, body: { hours } }), ctx());
     expect(res.status).toBe(422);
   });

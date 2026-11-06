@@ -4,7 +4,13 @@ import { get } from '../api.js';
 import { openOrderDetail } from './pedidos.js';
 
 function toCsv(orders) {
-  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // Texto digitado pelo cliente (nome, observação) não pode virar fórmula no Excel
+  // ("=HYPERLINK(...)" etc.): células que começam com = + - @ ganham um apóstrofo na frente.
+  const cell = (v) => {
+    let text = String(v ?? '');
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+  };
   const head = ['Pedido', 'Data', 'Cliente', 'Telefone', 'Tipo', 'Bairro', 'Pagamento', 'Subtotal', 'Desconto', 'Entrega', 'Total', 'Status', 'Itens'];
   const rows = orders.map(o => [
     o.code, dateTime(o.createdAt), o.customerName, o.customerPhone, o.deliveryType === 'delivery' ? 'Entrega' : 'Retirada',

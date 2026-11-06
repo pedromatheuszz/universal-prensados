@@ -24,7 +24,9 @@ export default handle(async (req, context) => {
 
   const body = await readJson(req);
   const result = await ACTIONS[action](db, body, user.username);
-  await audit(db, user.username, `caixa.${action}`, body);
+  // só os campos conhecidos vão para o registro (nada de corpo arbitrário)
+  const { amount, kind, description, countedAmount, notes } = body || {};
+  await audit(db, user.username, `caixa.${action}`, { amount, kind, description, countedAmount, notes });
   return json(result);
 });
 

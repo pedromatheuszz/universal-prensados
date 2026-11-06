@@ -443,10 +443,27 @@ function setupLogin() {
 
 // ---------- Início ----------
 
+// Sem conexão por mais de 1 minuto: avisa (pedidos novos não estão chegando)
+const OFFLINE_ALERT_MS = 60000;
+let offlineSince = null;
+let offlineAlerted = false;
+
 function setConnection(online, error) {
   $('#conn-dot').className = `dot dot--${online ? 'ok' : 'danger'}`;
   $('#conn-text').textContent = online ? 'Conectado' : 'Sem conexão com o servidor';
   $('#conn-text').title = online ? '' : error || '';
+  if (online) {
+    if (offlineAlerted && state.user) toast('Conexão restabelecida. Os pedidos voltaram a chegar.');
+    offlineSince = null;
+    offlineAlerted = false;
+    return;
+  }
+  offlineSince ??= Date.now();
+  if (state.user && !offlineAlerted && Date.now() - offlineSince >= OFFLINE_ALERT_MS) {
+    offlineAlerted = true;
+    window.gestao.notify('Sem conexão com o servidor', 'Os pedidos novos do site não estão chegando. Confira a internet deste computador.');
+    toast('Sem conexão há mais de 1 minuto: os pedidos novos não estão chegando.', 'error');
+  }
 }
 
 async function start() {

@@ -2,7 +2,7 @@
  * Gera site/src/generated/catalog.json: a cópia do cardápio embutida no site.
  * O site sempre busca o cardápio atualizado em /api/catalog (editado no app de gestão);
  * esta cópia só é usada se a API estiver fora do ar.
- *  - Com DATABASE_URL (build no Netlify ou .env.local): copia o cardápio do banco.
+ *  - Com DATABASE_URL (build na Vercel/Netlify ou .env.local): copia o cardápio do banco.
  *  - Sem DATABASE_URL: usa os dados iniciais de db/seed/.
  * Roda automaticamente antes de `npm run dev` e `npm run build`.
  */

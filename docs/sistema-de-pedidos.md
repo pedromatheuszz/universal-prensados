@@ -6,10 +6,10 @@ O projeto tem três partes:
 |---|---|---|
 | `site/` | Site de pedidos (cardápio, carrinho, checkout, acompanhamento `/pedido/`) | Clientes |
 | `app/` | **Universal Gestão**, um programa de Windows para administrar a loja | Donos e equipe |
-| `server/`, `netlify/functions/`, `db/` | API e banco **Neon (Postgres)**, usados pelo site e pelo app | — |
+| `server/`, `netlify/functions/`, `api/`, `db/` | API e banco **Neon (Postgres)**, usados pelo site e pelo app | — |
 | `shared/` | Regras usadas pelos dois lados (preços, horários, imagens) | — |
 
-O site e a API são publicados juntos no Netlify. O app é instalado no computador da lanchonete e conversa com a API do site pela internet.
+O site e a API são publicados juntos na **Vercel** (o projeto também continua pronto para o Netlify). O app é instalado no computador da lanchonete e conversa com a API do site pela internet.
 
 ## O que o app de gestão faz
 
@@ -29,7 +29,7 @@ Tudo o que é alterado no app vale **na hora** no site: preço, esgotado, pausa,
 ## Configuração inicial (uma vez)
 
 1. **Neon:** crie um projeto e copie a *Pooled connection string*.
-2. **Variáveis no Netlify** (Site configuration → Environment variables):
+2. **Variáveis na Vercel** (Project → Settings → Environment Variables, marcando *Production* e *Preview*; no Netlify: Site configuration → Environment variables):
    - `DATABASE_URL`: a string de conexão do Neon.
    - `SESSION_SECRET`: 32+ caracteres aleatórios. Para gerar:
      `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
@@ -43,7 +43,24 @@ Tudo o que é alterado no app vale **na hora** no site: preço, esgotado, pausa,
    npm run staff:add -- nome-do-dono
    ```
    Os outros usuários são criados pelo próprio app, na tela **Equipe**.
-5. **Instalar o app:** gere o instalador com `npm run app:dist` (sai em `app/dist/`) e rode-o no computador da lanchonete. Na tela de login, confira o servidor (padrão `https://universalprensados.com.br`).
+5. **Publicar o site:** veja [Publicar na Vercel](#publicar-na-vercel).
+6. **Instalar o app:** gere o instalador com `npm run app:dist` (sai em `app/dist/`) e rode-o no computador da lanchonete. Na tela de login, confira o servidor (padrão `https://universalprensados.com.br`).
+
+## Publicar na Vercel
+
+Tudo já está configurado em `vercel.json`: build (`npm run build`), pasta publicada (`site/dist`), a API em `/api/*`, cabeçalhos de segurança (CSP, HSTS) e cache. A função roda em São Paulo (`gru1`), na mesma região do banco Neon.
+
+1. Na Vercel, **Add New › Project** e importe o repositório `pedromatheuszz/universal-prensados` do GitHub.
+2. Em *Framework Preset* deixe **Other**. Não mude build, pasta de saída nem install: o `vercel.json` já define.
+3. Em *Environment Variables*, cadastre `DATABASE_URL` e `SESSION_SECRET` (os mesmos do `.env.local`). Elas precisam existir também no build, para o site sair com o cardápio atual.
+4. **Deploy.** Depois, em *Settings › Domains*, ligue o domínio `universalprensados.com.br` (a Vercel mostra os registros DNS a criar).
+5. Teste `https://<seu-endereço>/api/catalog` (deve responder com o cardápio) e faça login no app apontando para esse endereço.
+
+Cada `git push` na `main` publica uma nova versão automaticamente.
+
+Como funciona: a Vercel não usa as rotas de cada arquivo de `netlify/functions/`. O `vercel.json` manda todo `/api/*` para uma função só, `api/router.js`, que escolhe a função certa pela tabela de `server/routes.js`. As funções são as mesmas nas duas hospedagens. **Ao criar uma função nova em `netlify/functions/`, inclua-a também em `server/routes.js`.**
+
+O `/admin` (Decap CMS) depende do Netlify Identity e **não funciona na Vercel**. Na Vercel, os textos do site são editados direto no repositório.
 
 ## Instalar e atualizar o app
 

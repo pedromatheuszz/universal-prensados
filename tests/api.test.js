@@ -2,7 +2,7 @@
 /**
  * Testes de integração da API (site + app de gestão) contra um Postgres real em memória (PGlite).
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 
 process.env.SESSION_SECRET = 'teste-'.repeat(8);
@@ -395,5 +395,44 @@ describe('app de gestão: caixa e financeiro', () => {
     const { entries } = await (await adminStaff(req('GET', '/api/admin/staff?audit=1', { token: owner }), ctx())).json();
     const actions = entries.map(e => e.action);
     expect(actions).toEqual(expect.arrayContaining(['produto.editar', 'loja.pausar', 'caixa.close', 'despesa.criar', 'equipe.criar']));
+  });
+});
+
+describe('Função única da Vercel (api/router.js)', () => {
+  let router;
+  // o setup.js limpa o cache de módulos após cada teste: o router traz um db.js novo,
+  // que recebe o mesmo banco em memória
+  beforeEach(async () => {
+    router = await import('../api/router.js');
+    (await import('../server/db.js')).setDb(db);
+  });
+
+  it('roteia /api/* reescrito com ?__route= e mantém a query original', async () => {
+    const res = await router.GET(new Request(`${BASE}/api/router?__route=catalog&x=1`));
+    expect(res.status).toBe(200);
+    expect((await res.json()).products.length).toBeGreaterThan(0);
+  });
+
+  it('extrai parâmetros da rota e aceita o caminho sem reescrita', async () => {
+    const res = await router.GET(new Request(`${BASE}/api/coupons/BEMVINDO10`));
+    expect(res.status).toBe(200);
+    expect((await res.json()).discountPercent).toBe(10);
+  });
+
+  it('repassa corpo e método (login + rota admin protegida)', async () => {
+    const login = await router.POST(new Request(`${BASE}/api/router?__route=admin/session`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-real-ip': '10.9.9.9' },
+      body: JSON.stringify({ username: 'dono', password: 'senha-de-teste-123' }),
+    }));
+    expect(login.status).toBe(200);
+    const { token } = await login.json();
+    const orders = await router.GET(new Request(`${BASE}/api/router?__route=admin/orders`, { headers: { authorization: `Bearer ${token}` } }));
+    expect(orders.status).toBe(200);
+    expect((await router.GET(new Request(`${BASE}/api/router?__route=admin/orders`))).status).toBe(401);
+  });
+
+  it('responde 404 para rota desconhecida e para /api/router direto', async () => {
+    expect((await router.GET(new Request(`${BASE}/api/router?__route=nada`))).status).toBe(404);
+    expect((await router.GET(new Request(`${BASE}/api/router`))).status).toBe(404);
   });
 });

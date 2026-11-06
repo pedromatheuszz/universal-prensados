@@ -1,0 +1,10 @@
+# O app de Windows, testes e dados locais não vão para a Vercel
+app/
+tests/
+test-results/
+playwright-report/
+.data/
+.claude/
+.env
+.env.local
+.vercel

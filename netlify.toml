@@ -1,5 +1,5 @@
 # Netlify Configuration for Universal Prensados
-# Hospedagem oficial: Netlify. Publica o site dos clientes (site/) e a API (netlify/functions).
+# Hospedagem alternativa (a principal é a Vercel, em vercel.json). Publica o site dos clientes (site/) e a API (netlify/functions).
 # O app de gestão (app/) é um programa de Windows e não é publicado aqui.
 # O /admin (Decap CMS) usa Netlify Identity + Git Gateway e só edita textos do site.
 [build]

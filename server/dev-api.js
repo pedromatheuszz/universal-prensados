@@ -3,23 +3,19 @@
  * - Com DATABASE_URL (no .env.local) usa o Neon de verdade.
  * - Sem DATABASE_URL usa um Postgres local (PGlite em .data/dev-db) com o schema
  *   aplicado e um usuário da equipe de teste (DEV_STAFF_USER / DEV_STAFF_PASSWORD).
- * Em produção quem roteia /api/* é o próprio Netlify (config.path de cada função).
+ * Em produção quem roteia /api/* é o Netlify (config.path de cada função) ou, na Vercel,
+ * a função única api/router.js (tabela em server/routes.js).
  */
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { loadEnv } from 'vite';
+import { matchPath } from './route-pattern.js';
 
 // Caminhos absolutos: o Vite roda com root em site/, mas a API mora na raiz do repositório
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FUNCTIONS_DIR = path.join(REPO, 'netlify/functions');
-
-function toRegex(pattern) {
-  const keys = [];
-  const source = pattern.replace(/\/:([A-Za-z_]+)/g, (_, key) => { keys.push(key); return '/([^/]+)'; });
-  return { regex: new RegExp(`^${source}/?$`), keys };
-}
 
 async function readBody(req) {
   const chunks = [];
@@ -78,13 +74,8 @@ export function devApi() {
           const url = new URL(req.url, 'http://localhost');
           for (const file of fs.readdirSync(FUNCTIONS_DIR).filter(f => f.endsWith('.js'))) {
             const mod = await server.ssrLoadModule(path.join(FUNCTIONS_DIR, file));
-            const patterns = [mod.config?.path].flat().filter(Boolean);
-            for (const pattern of patterns) {
-              const { regex, keys } = toRegex(pattern);
-              const match = url.pathname.match(regex);
-              if (!match) continue;
-
-              const params = Object.fromEntries(keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]));
+            const params = matchPath(mod.config?.path, url.pathname);
+            if (params) {
               const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await readBody(req);
               const request = new Request(url, { method: req.method, headers: req.headers, body });
               const response = await mod.default(request, { params, ip: req.socket.remoteAddress });

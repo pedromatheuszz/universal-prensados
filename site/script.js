@@ -604,14 +604,29 @@ function updateCheckoutSummary() {
 
 // Envia o pedido para a API (aparece no app de gestão). Se a API estiver fora do ar,
 // o pedido segue só pelo WhatsApp como antes — nenhum pedido se perde.
-async function submitOrderToApi(payload) {
+// Identificador do checkout: se a resposta do servidor se perder no caminho, reenviar o mesmo
+// pedido devolve o que já foi criado em vez de duplicar no app. Muda quando o pedido muda.
+let pendingCheckout = null; // { key, ref }
+
+function newCheckoutRef() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function checkoutRef(payload) {
+  const key = JSON.stringify(payload);
+  if (pendingCheckout?.key !== key) pendingCheckout = { key, ref: newCheckoutRef() };
+  return pendingCheckout.ref;
+}
+
+async function postOrder(body) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body,
       signal: controller.signal,
     });
     const data = await res.json().catch(() => ({}));
@@ -626,6 +641,19 @@ async function submitOrderToApi(payload) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Até duas tentativas: com o identificador do checkout, repetir é seguro
+async function submitOrderToApi(payload, { onRetry } = {}) {
+  const body = JSON.stringify({ ...payload, clientRef: checkoutRef(payload) });
+  let result = await postOrder(body);
+  if (!result.ok && !result.userError) {
+    onRetry?.();
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    result = await postOrder(body);
+  }
+  if (result.ok) pendingCheckout = null;
+  return result;
 }
 
 function buildWhatsAppMessage({ code, trackingUrl, name, phone, deliveryType, address, items, totals, paymentText, couponCode }) {
@@ -716,8 +744,10 @@ async function processOrder(e) {
     submitBtn.textContent = 'Enviando pedido...';
   }
 
-  // Abre a aba do WhatsApp já no clique (depois de um await o navegador bloquearia o pop-up)
+  // Abre a aba do WhatsApp já no clique (depois de um await o navegador bloquearia o pop-up).
+  // Sem "opener": a página aberta não consegue mexer nesta aba (proteção contra tabnabbing).
   const waWindow = window.open('', '_blank');
+  if (waWindow) waWindow.opener = null;
 
   const result = await submitOrderToApi({
     customer: { name, phone },
@@ -726,6 +756,8 @@ async function processOrder(e) {
     payment: { method: paymentMethod, changeFor },
     couponCode: appliedCoupon?.code || null,
     items: cart.map(item => ({ id: item.id, qty: item.qty, extras: item.extras.map(x => x.name), removals: item.removals, notes: item.notes })),
+  }, {
+    onRetry: () => { if (submitBtn) submitBtn.textContent = 'Conexão lenta, tentando de novo...'; },
   });
 
   if (submitBtn) {
@@ -1057,9 +1089,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       applyCouponBtn.disabled = true;
       let coupon = null;
       let offline = false;
+      let blockedMessage = '';
       try {
         const res = await fetch(`/api/coupons/${encodeURIComponent(code)}`, { headers: { Accept: 'application/json' } });
         if (res.ok) coupon = await res.json();
+        else if (res.status === 429) blockedMessage = (await res.json().catch(() => ({}))).error || 'Muitas tentativas de cupom. Aguarde alguns minutos.';
         else if (res.status !== 404) offline = true;
       } catch {
         offline = true;
@@ -1077,7 +1111,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         trackApplyCoupon(coupon.code, getCartDiscount());
       } else {
         couponMsg.className = 'coupon-feedback error';
-        couponMsg.textContent = offline ? 'Não foi possível conferir o cupom agora. Tente de novo em instantes.' : 'Cupom inválido ou expirado.';
+        couponMsg.textContent = blockedMessage
+          || (offline ? 'Não foi possível conferir o cupom agora. Tente de novo em instantes.' : 'Cupom inválido ou expirado.');
       }
     });
   }

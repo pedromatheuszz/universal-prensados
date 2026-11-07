@@ -51,7 +51,15 @@ function userForm(user, done) {
       h('div', { class: 'span-2' }, field('Papel', f.role), help),
       h('div', { class: 'span-2' }, field(isNew ? 'Senha' : 'Nova senha', f.password)),
       !isNew ? h('label', { class: 'check' }, f.active, 'Usuário ativo (pode entrar no app)') : null),
-    actions: [{ label: 'Cancelar' }, {
+    actions: [...(isNew ? [] : [{
+      // computador perdido, senha vazada, funcionário que saiu: derruba os logins abertos
+      label: 'Encerrar sessões', icon: 'logout', left: true,
+      onClick: async () => {
+        await patch(`/api/admin/staff/${encodeURIComponent(u.username)}`, { revokeSessions: true });
+        toast(`Sessões de ${u.displayName} encerradas. Será preciso entrar de novo.`);
+        done();
+      },
+    }]), { label: 'Cancelar' }, {
       label: 'Salvar', kind: 'primary', icon: 'check', submit: true,
       onClick: async () => {
         if (isNew) {

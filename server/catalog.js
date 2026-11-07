@@ -110,7 +110,8 @@ function money(v, label) {
   return Math.round(n * 100) / 100;
 }
 const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
-const int = (v, fallback) => (Number.isInteger(Number(v)) && v !== '' && v !== null ? Number(v) : fallback);
+// ordem de exibição: inteiro numa faixa que cabe na coluna INT do banco
+const int = (v, fallback) => (Number.isInteger(Number(v)) && v !== '' && v !== null && Math.abs(Number(v)) <= 1000000 ? Number(v) : fallback);
 
 export function validateProduct(input, existing = null) {
   const b = input || {};

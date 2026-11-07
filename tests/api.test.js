@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 
 process.env.SESSION_SECRET = 'teste-'.repeat(8);
+process.env.SCRYPT_N = '16384'; // hash rápido nos testes (produção usa 2^17)
 
 const { setDb, migrate } = await import('../server/db.js');
 const { hashPassword } = await import('../server/auth.js');
@@ -434,5 +435,112 @@ describe('Função única da Vercel (api/router.js)', () => {
   it('responde 404 para rota desconhecida e para /api/router direto', async () => {
     expect((await router.GET(new Request(`${BASE}/api/router?__route=nada`))).status).toBe(404);
     expect((await router.GET(new Request(`${BASE}/api/router`))).status).toBe(404);
+  });
+});
+
+describe('proteções da revisão de segurança', () => {
+  const raw = (fn, method, path, body, { token, ...extra } = {}) => fn(new Request(BASE + path, {
+    method,
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    body,
+  }), ctx(extra));
+
+  it('corpo que não é um objeto JSON é recusado com 400 (e não vira erro interno)', async () => {
+    expect((await raw(createOrder, 'POST', '/api/orders', '[]')).status).toBe(400);
+    expect((await raw(adminStore, 'PATCH', '/api/admin/store', 'null', { token: owner })).status).toBe(400);
+  });
+
+  it('sem login, a rota do cardápio não revela quais cupons existem', async () => {
+    const tryPatch = (id) => adminCatalog(req('PATCH', `/api/admin/catalog/coupons/${id}`, { body: { active: false } }), ctx({ params: { resource: 'coupons', id } }));
+    expect((await tryPatch('NATAL15')).status).toBe(401);
+    expect((await tryPatch('NAOEXISTE')).status).toBe(401);
+  });
+
+  it('senhas fáceis de adivinhar são recusadas', async () => {
+    for (const password of ['1234567890', 'aaaaaaaaaaaa', 'abcdefghijk', 'universal2026', 'maria-12345678']) {
+      const res = await adminStaff(req('POST', '/api/admin/staff', { token: owner, body: { username: 'maria', role: 'atendente', password } }), ctx());
+      expect(res.status, password).toBe(422);
+    }
+  });
+
+  it('muitas senhas erradas contra o mesmo usuário bloqueiam, mesmo vindo de IPs diferentes', async () => {
+    await adminStaff(req('POST', '/api/admin/staff', { token: owner, body: { username: 'caixa2', role: 'atendente', password: 'gaveta-azul-77' } }), ctx());
+    for (let i = 0; i < 20; i++) {
+      const res = await session(post('/api/admin/session', { username: 'caixa2', password: 'errada-000' }), ctx({ ip: `10.9.${i}.1` }));
+      expect(res.status).toBe(401);
+    }
+    const blocked = await session(post('/api/admin/session', { username: 'caixa2', password: 'gaveta-azul-77' }), ctx({ ip: '10.9.99.1' }));
+    expect(blocked.status).toBe(429);
+    expect((await login('ana', 'senha-forte-123')).status).toBe(200); // os outros seguem entrando
+  });
+
+  it('senha no formato antigo é refeita no login certo, sem derrubar a sessão', async () => {
+    const crypto = await import('crypto');
+    const salt = crypto.randomBytes(16);
+    const hash = crypto.scryptSync('pao-quentinho-987', salt, 64, { N: 16384, r: 8, p: 1 });
+    await db.query("INSERT INTO staff_users (username, password_hash, display_name, role) VALUES ('velho', $1, 'Velho', 'atendente')",
+      [`scrypt$${salt.toString('base64url')}$${hash.toString('base64url')}`]);
+    expect((await login('velho', 'pao-quentinho-987')).status).toBe(200);
+    const [row] = await db.query("SELECT password_hash, session_version FROM staff_users WHERE username = 'velho'");
+    expect(row.password_hash.split('$')).toHaveLength(6);
+    expect(row.session_version).toBe(1);
+    expect((await login('velho', 'pao-quentinho-987')).status).toBe(200);
+    const [entry] = await db.query("SELECT 1 FROM audit_log WHERE action = 'sessao.entrar' AND username = 'velho'");
+    expect(entry).toBeTruthy(); // login certo fica no registro
+  });
+
+  it('dono encerra as sessões de um usuário', async () => {
+    const attendant = (await login('ana', 'senha-forte-123')).token;
+    expect((await adminOrders(req('GET', '/api/admin/orders', { token: attendant }), ctx())).status).toBe(200);
+    const res = await adminStaff(req('PATCH', '/api/admin/staff/ana', { token: owner, body: { revokeSessions: true } }), ctx({ params: { username: 'ana' } }));
+    expect(res.status).toBe(200);
+    expect((await adminOrders(req('GET', '/api/admin/orders', { token: attendant }), ctx())).status).toBe(401);
+    const [entry] = await db.query("SELECT 1 FROM audit_log WHERE action = 'equipe.encerrar_sessoes'");
+    expect(entry).toBeTruthy();
+  });
+
+  it('o mesmo checkout reenviado não cria pedido duplicado', async () => {
+    const body = validOrder({ clientRef: 'checkout-0123456789abcdef' });
+    const first = await createOrder(post('/api/orders', body), ctx({ ip: '10.0.1.1' }));
+    const again = await createOrder(post('/api/orders', body), ctx({ ip: '10.0.1.1' }));
+    const [a, b] = [await first.json(), await again.json()];
+    expect([first.status, again.status]).toEqual([201, 200]);
+    expect([b.id, b.trackingToken, b.order.total]).toEqual([a.id, a.trackingToken, a.order.total]);
+    const [{ n }] = await db.query("SELECT count(*)::int AS n FROM orders WHERE client_ref = 'checkout-0123456789abcdef'");
+    expect(n).toBe(1);
+  });
+
+  it('texto do cliente chega limpo (sem caracteres de controle nem inversão de direção)', async () => {
+    const name = 'Ana ‮abc‬\u0007 Souza';
+    const res = await createOrder(post('/api/orders', validOrder({ customer: { name, phone: '(47) 98888-1111' } })), ctx({ ip: '10.0.1.2' }));
+    expect((await res.json()).order.customerName).toBe('Ana abc Souza');
+  });
+
+  it('adicional repetido no mesmo lanche é cobrado uma vez', () => {
+    const once = buildOrder(validOrder(), catalog, OPEN_TIME);
+    const twice = buildOrder(validOrder({ items: [{ id: 'dogzao', qty: 2, extras: ['Bacon Crocante', 'Bacon Crocante'] }] }), catalog, OPEN_TIME);
+    expect(twice.items[0].unitPrice).toBe(once.items[0].unitPrice);
+    expect(twice.items[0].extras).toHaveLength(1);
+  });
+
+  it('erros seguidos de cupom bloqueiam novas tentativas do mesmo IP', async () => {
+    const tryCode = (code, ip = '10.0.2.2') => couponsApi(new Request(`${BASE}/api/coupons/${code}`), ctx({ ip, params: { code } }));
+    for (let i = 0; i < 20; i++) expect((await tryCode(`ERRADO${i}`)).status).toBe(404);
+    expect((await tryCode('NATAL15')).status).toBe(429);
+    expect((await tryCode('NATAL15', '10.0.2.3')).status).toBe(200); // outro IP não é afetado
+  });
+
+  it('datas que não existem no calendário são recusadas', async () => {
+    expect((await reports(req('GET', '/api/admin/reports?from=2026-02-31&to=2026-03-01', { token: owner }), ctx())).status).toBe(422);
+    const expense = await adminFinance(req('POST', '/api/admin/finance/expenses', { token: owner, body: { date: '2026-02-30', category: 'Outros', amount: 10 } }), ctx());
+    expect(expense.status).toBe(422);
+  });
+
+  it('o registro de alterações corta textos longos e listas grandes', async () => {
+    const { audit } = await import('../server/auth.js');
+    await audit(db, 'dono', 'teste.longo', { notes: 'x'.repeat(5000), lista: Array(100).fill('a') });
+    const [row] = await db.query("SELECT details FROM audit_log WHERE action = 'teste.longo'");
+    expect(row.details.notes).toHaveLength(300);
+    expect(row.details.lista).toHaveLength(30);
   });
 });

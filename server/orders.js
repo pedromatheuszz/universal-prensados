@@ -5,6 +5,7 @@ import { REMOVALS } from '../shared/menu-options.js';
 import { calcSubtotal, calcDiscount, calcDeliveryFee, calcTotal, findCoupon, repriceCart } from '../shared/pricing.js';
 import { getStoreStatus } from '../shared/store-hours.js';
 import { HttpError } from './http.js';
+import { cleanText } from './text.js';
 
 export const STATUSES = ['novo', 'preparando', 'pronto', 'saiu_entrega', 'entregue', 'cancelado'];
 
@@ -35,7 +36,12 @@ const PAYMENT_METHODS = ['pix', 'cartao', 'dinheiro'];
 const MAX_ITEMS = 40;
 const MAX_QTY = 99;
 
-const text = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
+const text = (value, max) => cleanText(value, max);
+
+// Identificador do checkout gerado no navegador: reenviar o mesmo pedido (rede lenta,
+// clique duplo) devolve o pedido já criado em vez de criar outro
+const CLIENT_REF_RE = /^[A-Za-z0-9_-]{16,64}$/;
+export const parseClientRef = (value) => (typeof value === 'string' && CLIENT_REF_RE.test(value) ? value : null);
 
 /**
  * Valida a entrada do checkout e devolve o pedido normalizado com valores calculados.
@@ -87,9 +93,11 @@ export function buildOrder(input, { products, settings, extras }, now = new Date
   const cleanItems = rawItems.slice(0, MAX_ITEMS).map(item => ({
     id: item?.id,
     qty: item?.qty,
-    extras: (Array.isArray(item?.extras) ? item.extras : []).map(e => ({ name: typeof e === 'string' ? e : e?.name })),
-    removals: (Array.isArray(item?.removals) ? item.removals : []).filter(r => REMOVALS.includes(r)),
-    notes: text(item?.notes, 300),
+    // cada adicional vale uma vez por lanche (repetido não é cobrado em dobro)
+    extras: [...new Set((Array.isArray(item?.extras) ? item.extras : []).slice(0, 30).map(e => (typeof e === 'string' ? e : e?.name)))]
+      .map(name => ({ name })),
+    removals: [...new Set((Array.isArray(item?.removals) ? item.removals : []).filter(r => REMOVALS.includes(r)))],
+    notes: cleanText(item?.notes, 300, { multiline: true }),
   }));
   const items = repriceCart(cleanItems, products, extras);
   if (cleanItems.length > 0 && items.length !== cleanItems.length) {
@@ -129,6 +137,7 @@ export function buildOrder(input, { products, settings, extras }, now = new Date
     deliveryFee: fee,
     total: calcTotal({ subtotal, discount, fee }),
     couponCode: coupon?.code ?? null,
+    clientRef: parseClientRef(body.clientRef),
   };
 }
 
@@ -185,13 +194,16 @@ export function toPublicOrder(row, history = []) {
 
 // ---------- Consultas ----------
 
+/** Grava o pedido. Devolve null se o mesmo checkout (clientRef) já tinha sido gravado. */
 export async function insertOrder(db, order, ipHash) {
   const token = crypto.randomBytes(18).toString('base64url');
   const [row] = await db.query(
     `WITH o AS (
        INSERT INTO orders (tracking_token, customer_name, customer_phone, delivery_type, address, district,
-                           payment_method, change_for, items, subtotal, discount, delivery_fee, total, coupon_code, client_ip_hash)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                           payment_method, change_for, items, subtotal, discount, delivery_fee, total, coupon_code,
+                           client_ip_hash, client_ref)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       ON CONFLICT (client_ref) DO NOTHING
        RETURNING *
      ), h AS (
        INSERT INTO order_status_history (order_id, status, changed_by) SELECT id, status, 'cliente' FROM o
@@ -199,9 +211,15 @@ export async function insertOrder(db, order, ipHash) {
      SELECT * FROM o`,
     [token, order.customerName, order.customerPhone, order.deliveryType, order.address ? JSON.stringify(order.address) : null,
       order.district, order.paymentMethod, order.changeFor, JSON.stringify(order.items), order.subtotal, order.discount,
-      order.deliveryFee, order.total, order.couponCode, ipHash]
+      order.deliveryFee, order.total, order.couponCode, ipHash, order.clientRef ?? null]
   );
-  return row;
+  return row || null;
+}
+
+export async function findByClientRef(db, clientRef) {
+  if (!clientRef) return null;
+  const [row] = await db.query('SELECT * FROM orders WHERE client_ref = $1', [clientRef]);
+  return row || null;
 }
 
 export async function countRecentOrdersByIp(db, ipHash, minutes = 10) {
@@ -219,15 +237,16 @@ export async function findByToken(db, token) {
   return toPublicOrder(row, history);
 }
 
-// Pedidos em andamento + finalizados nas últimas 12h (quadro da cozinha)
+// Quadro da cozinha: todos os pedidos em andamento + os finalizados nas últimas 12h.
+// O limite corta só os finalizados mais antigos (nunca um pedido novo).
 export async function listBoard(db) {
   const rows = await db.query(
-    `SELECT * FROM orders
-      WHERE status NOT IN ('entregue', 'cancelado') OR updated_at > now() - interval '12 hours'
-      ORDER BY created_at ASC
-      LIMIT 300`
+    `(SELECT * FROM orders WHERE status NOT IN ('entregue', 'cancelado') ORDER BY created_at DESC LIMIT 500)
+     UNION ALL
+     (SELECT * FROM orders WHERE status IN ('entregue', 'cancelado') AND updated_at > now() - interval '12 hours'
+       ORDER BY updated_at DESC LIMIT 150)`
   );
-  return rows.map(toStaffOrder);
+  return rows.map(toStaffOrder).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 export async function updateStatus(db, id, to, username, cancelReason = null) {

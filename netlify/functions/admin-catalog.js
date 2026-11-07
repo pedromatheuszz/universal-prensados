@@ -5,7 +5,7 @@
 //   DELETE /:resource/:id                 remove
 import { getDb } from '../../server/db.js';
 import { handle, json, readJson, methodNotAllowed, HttpError } from '../../server/http.js';
-import { requireStaff, audit } from '../../server/auth.js';
+import { requireStaff, requirePermission, audit } from '../../server/auth.js';
 import {
   getFullCatalog, validateProduct, validateExtra, validateDistrict, validateCoupon,
   upsertProduct, upsertExtra, upsertCoupon,
@@ -33,10 +33,12 @@ async function saveDistrict(db, d, id = null) {
 export default handle(async (req, context) => {
   const db = getDb();
   const { resource, id } = context.params || {};
+  // login antes de qualquer consulta: sem isso, a diferença entre "não encontrado" e
+  // "faça login" revelaria quais cupons e produtos existem
+  const staff = await requireStaff(req, db, 'orders.view');
 
   if (!resource) {
     if (req.method !== 'GET') return methodNotAllowed(['GET']);
-    await requireStaff(req, db, 'orders.view');
     return json(await getFullCatalog(db));
   }
 
@@ -46,7 +48,7 @@ export default handle(async (req, context) => {
 
   if (!id) {
     if (req.method !== 'POST') return methodNotAllowed(['POST']);
-    const user = await requireStaff(req, db, 'catalog.edit');
+    const user = requirePermission(staff, 'catalog.edit');
     const item = r.validate(await readJson(req));
     if (resource === 'districts') {
       await saveDistrict(db, item);
@@ -63,7 +65,7 @@ export default handle(async (req, context) => {
   if (!existing) throw new HttpError(404, 'Item não encontrado');
 
   if (req.method === 'DELETE') {
-    const user = await requireStaff(req, db, 'catalog.edit');
+    const user = requirePermission(staff, 'catalog.edit');
     await db.query(`DELETE FROM ${r.table} WHERE ${r.key} = $1`, [existing[r.key]]);
     await audit(db, user.username, `${r.label}.excluir`, { [r.key]: existing[r.key], name: existing.name });
     return json(await getFullCatalog(db));
@@ -72,7 +74,7 @@ export default handle(async (req, context) => {
 
   const body = await readJson(req);
   const onlyStock = resource === 'products' && Object.keys(body).length === 1 && 'soldOut' in body;
-  const user = await requireStaff(req, db, onlyStock ? 'stock.toggle' : 'catalog.edit');
+  const user = requirePermission(staff, onlyStock ? 'stock.toggle' : 'catalog.edit');
   const item = r.validate(body, existing);
   if (resource === 'districts') {
     await saveDistrict(db, item, existing.id);

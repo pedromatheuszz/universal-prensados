@@ -84,18 +84,38 @@ let pollTimer = null;
 let storeTimer = null;
 let syncTimer = null;
 
+// Uma consulta por vez: com a rede lenta, respostas fora de ordem poderiam trazer de volta
+// uma lista antiga e fazer o mesmo pedido "chegar" duas vezes (som e comanda em dobro)
+let polling = null;
+let pollAgain = false;
+
 async function pollOrders() {
   if (!state.user) return;
+  if (polling) {
+    pollAgain = true; // alguém pediu atualização no meio: roda de novo ao terminar
+    return polling;
+  }
+  polling = (async () => {
+    try {
+      const { orders } = await get('/api/admin/orders');
+      const fresh = knownIds ? orders.filter(o => !knownIds.has(o.id) && o.status === 'novo') : [];
+      knownIds = new Set([...(knownIds || []), ...orders.map(o => o.id)]);
+      state.orders = orders;
+      state.lastSync = new Date();
+      if (fresh.length) onNewOrders(fresh);
+      updateCounters();
+      state.listeners.forEach(fn => fn(orders, fresh));
+    } catch { /* a barra de status já mostra o problema */ }
+  })();
   try {
-    const { orders } = await get('/api/admin/orders');
-    const fresh = knownIds ? orders.filter(o => !knownIds.has(o.id) && o.status === 'novo') : [];
-    knownIds = new Set(orders.map(o => o.id));
-    state.orders = orders;
-    state.lastSync = new Date();
-    if (fresh.length) onNewOrders(fresh);
-    updateCounters();
-    state.listeners.forEach(fn => fn(orders, fresh));
-  } catch { /* a barra de status já mostra o problema */ }
+    await polling;
+  } finally {
+    polling = null;
+  }
+  if (pollAgain) {
+    pollAgain = false;
+    await pollOrders();
+  }
 }
 
 function onNewOrders(fresh) {

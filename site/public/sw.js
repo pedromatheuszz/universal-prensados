@@ -1,10 +1,10 @@
 /**
  * Universal Prensados - Service Worker
- * Versão: 1.3.0
+ * Versão: 1.5.0
  * Estratégia: Cache First para assets estáticos, Network First para dados dinâmicos
  */
 
-const CACHE_NAME = 'universal-prensados-v1.4.0';
+const CACHE_NAME = 'universal-prensados-v1.5.0';
 const STATIC_CACHE = 'universal-prensados-static-v1.3.0';
 const DYNAMIC_CACHE = 'universal-prensados-dynamic-v1.3.0';
 const IMAGE_CACHE = 'universal-prensados-images-v1.3.0';
@@ -264,64 +264,6 @@ async function networkFirstStrategy(request, cacheName) {
     );
   }
 }
-
-// Sincronização em background (para futuros pedidos offline)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-orders') {
-    console.log('[SW] Sincronizando pedidos pendentes...');
-    event.waitUntil(syncPendingOrders());
-  }
-});
-
-async function syncPendingOrders() {
-  // Implementação futura: sincronizar pedidos feitos offline
-  // quando a conexão for restaurada
-  console.log('[SW] Sincronização de pedidos não implementada ainda');
-}
-
-// Notificações Push (futuro)
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-  
-  const data = event.data.json();
-  const options = {
-    body: data.body || 'Nova notificação da Universal Prensados',
-    icon: '/images/icon-192.png',
-    badge: '/images/icon-72.png',
-    vibrate: [200, 100, 200],
-    data: data.data || {},
-    actions: [
-      { action: 'open', title: 'Abrir' },
-      { action: 'dismiss', title: 'Dispensar' }
-    ],
-    requireInteraction: true
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Universal Prensados', options)
-  );
-});
-
-// Clique em notificação
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  
-  if (event.action === 'open') {
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          // Focar janela existente se houver
-          for (const client of clientList) {
-            if (client.url.includes(self.location.origin) && 'focus' in client) {
-              return client.focus();
-            }
-          }
-          // Abrir nova janela
-          return clients.openWindow('/');
-        })
-    );
-  }
-});
 
 // Mensagens do cliente principal
 self.addEventListener('message', (event) => {

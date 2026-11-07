@@ -1,7 +1,6 @@
 # Netlify Configuration for Universal Prensados
 # Hospedagem alternativa (a principal é a Vercel, em vercel.json). Publica o site dos clientes (site/) e a API (netlify/functions).
 # O app de gestão (app/) é um programa de Windows e não é publicado aqui.
-# O /admin (Decap CMS) usa Netlify Identity + Git Gateway e só edita textos do site.
 [build]
   command = "npm run build"
   publish = "site/dist"
@@ -12,35 +11,27 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Cabeçalhos de segurança: os mesmos do vercel.json (a CSP vale para todas as páginas,
+# inclusive /pedido/; o index.html traz a mesma política em <meta>).
 [[headers]]
   for = "/*"
   [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://viacep.com.br; frame-src https://www.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
+    X-XSS-Protection = "0"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Strict-Transport-Security = "max-age=31536000"
-    Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
-
-# CSP do site (o index.html também traz a mesma política em <meta>). Só o necessário:
-# fontes do Google, ViaCEP (busca de CEP) e o mapa do Google em iframe.
-[[headers]]
-  for = "/"
-  [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://viacep.com.br; frame-src https://www.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Permissions-Policy = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), browsing-topics=()"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Resource-Policy = "same-origin"
+    X-Permitted-Cross-Domain-Policies = "none"
 
 [[headers]]
-  for = "/index.html"
+  for = "/api/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://viacep.com.br; frame-src https://www.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    X-Robots-Tag = "noindex"
 
-# Painel Decap CMS: precisa carregar scripts do unpkg e do Netlify Identity
-[[headers]]
-  for = "/admin/*"
-  [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' https://unpkg.com https://identity.netlify.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://unpkg.com https://api.netlify.com https://*.netlify.app https://*.netlify.com; frame-src 'self' https://identity.netlify.com; base-uri 'self';"
-
-# Acompanhamento do pedido: fora do Google
 [[headers]]
   for = "/pedido/*"
   [headers.values]

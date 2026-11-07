@@ -1,5 +1,6 @@
 // Financeiro: despesas e resultado do mês (faturamento dos pedidos − despesas). Datas de Brasília.
 import { HttpError } from './http.js';
+import { isRealDate } from './reports.js';
 
 const TZ = 'America/Sao_Paulo';
 const num = (v) => Math.round(Number(v ?? 0) * 100) / 100;
@@ -11,7 +12,7 @@ export const EXPENSE_CATEGORIES = [
 
 export function parseMonth(value, today = new Date()) {
   const month = value || new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(today).slice(0, 7);
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new HttpError(422, 'Mês deve estar no formato AAAA-MM');
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || !isRealDate(`${month}-01`)) throw new HttpError(422, 'Mês deve estar no formato AAAA-MM');
   return month;
 }
 
@@ -77,7 +78,7 @@ export async function monthSummary(db, month) {
 
 export function validateExpense(body) {
   const date = String(body?.date || '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) throw new HttpError(422, 'Data inválida');
+  if (!isRealDate(date)) throw new HttpError(422, 'Data inválida');
   if (!EXPENSE_CATEGORIES.includes(body?.category)) throw new HttpError(422, 'Escolha uma categoria');
   const amount = Number(String(body?.amount ?? '').replace(',', '.'));
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) throw new HttpError(422, 'Valor inválido');

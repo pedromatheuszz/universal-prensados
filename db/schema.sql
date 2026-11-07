@@ -165,3 +165,22 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS audit_log_created_at_idx ON audit_log (created_at DESC);
+
+-- ---------------------------------------------------------------------------
+-- Proteções (nov/2026). Só acrescentam: a versão anterior da API continua funcionando.
+-- ---------------------------------------------------------------------------
+
+-- Identificador do checkout gerado no navegador: o mesmo pedido reenviado não vira dois
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS client_ref TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS orders_client_ref_idx ON orders (client_ref);
+
+-- Tentativas recentes (login por usuário, cupons errados). Chave guardada só como hash.
+CREATE TABLE IF NOT EXISTS rate_events (
+  id          BIGSERIAL PRIMARY KEY,
+  bucket      TEXT NOT NULL,
+  key_hash    TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS rate_events_key_idx ON rate_events (bucket, key_hash, created_at);
+CREATE INDEX IF NOT EXISTS rate_events_created_at_idx ON rate_events (created_at);

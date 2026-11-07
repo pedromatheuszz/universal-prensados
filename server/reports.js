@@ -5,11 +5,19 @@ const TZ = 'America/Sao_Paulo';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 366;
 
+/** Data de calendário que existe de verdade (recusa 2026-02-31) e dentro de 2000–2100. */
+export function isRealDate(value) {
+  if (typeof value !== 'string' || !DATE_RE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  const year = Number(value.slice(0, 4));
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value && year >= 2000 && year <= 2100;
+}
+
 export function parseRange(searchParams, today = new Date()) {
   const fmt = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d); // YYYY-MM-DD
   const to = searchParams.get('to') || fmt(today);
   const from = searchParams.get('from') || to;
-  if (!DATE_RE.test(from) || !DATE_RE.test(to)) throw new HttpError(422, 'Datas devem estar no formato AAAA-MM-DD');
+  if (!isRealDate(from) || !isRealDate(to)) throw new HttpError(422, 'Datas devem estar no formato AAAA-MM-DD');
   const days = (Date.parse(to) - Date.parse(from)) / 86400000;
   if (Number.isNaN(days) || days < 0) throw new HttpError(422, 'Período inválido');
   if (days > MAX_DAYS) throw new HttpError(422, 'Período máximo de 1 ano');

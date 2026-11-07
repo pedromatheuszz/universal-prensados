@@ -1,7 +1,7 @@
 {
   "name": "universal-gestao",
   "productName": "Universal Gestão",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "App de gestão da Universal Prensados: pedidos do site, cardápio, loja, caixa, financeiro e equipe",
   "author": "Universal Prensados",
   "private": true,

@@ -19,24 +19,52 @@ export async function listStaff(db) {
   return rows.map(toStaff);
 }
 
-function checkPassword(password) {
-  if (typeof password !== 'string' || password.length < MIN_PASSWORD) {
-    throw new HttpError(422, `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres`);
+export const MAX_PASSWORD = 200; // o login recusa senhas maiores
+
+// Senhas que aparecem primeiro em qualquer tentativa de adivinhação
+const COMMON = ['1234567890', '0987654321', 'senha12345', 'password12', 'qwertyuiop', 'asdfghjkl', 'abcdefghij', 'universal', 'prensados', 'lanchonete', 'cachorroquente'];
+
+// Sequência de caracteres vizinhos do começo ao fim (ex.: "abcdefghij", "9876543210")
+function isSequence(s) {
+  const codes = [...s].map(c => c.codePointAt(0));
+  const step = codes[1] - codes[0];
+  return Math.abs(step) === 1 && codes.every((c, i) => i === 0 || c - codes[i - 1] === step);
+}
+
+/** Regras de senha da equipe. Mensagens em português para mostrar direto no app e no terminal. */
+export function passwordProblem(password, username = '') {
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD) return `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres`;
+  if (password.length > MAX_PASSWORD) return `A senha pode ter no máximo ${MAX_PASSWORD} caracteres`;
+  const lower = password.toLowerCase();
+  const name = String(username).toLowerCase();
+  if (new Set(lower).size < 4 || isSequence(lower) || COMMON.some(c => lower.includes(c)) || (name.length >= 3 && lower.includes(name))) {
+    return 'Senha fácil de adivinhar. Evite sequências, repetições, o nome da loja e o nome do usuário.';
   }
+  return null;
+}
+
+function checkPassword(password, username) {
+  const problem = passwordProblem(password, username);
+  if (problem) throw new HttpError(422, problem);
 }
 
 export async function createStaff(db, body) {
   const username = String(body?.username || '').trim().toLowerCase();
   if (!USERNAME_RE.test(username)) throw new HttpError(422, 'Usuário: 3 a 32 caracteres (letras minúsculas, números, . _ -)');
   if (!ROLES[body?.role]) throw new HttpError(422, 'Escolha um papel válido');
-  checkPassword(body?.password);
+  checkPassword(body?.password, username);
   const displayName = String(body?.displayName || '').trim().slice(0, 60);
   const [exists] = await db.query('SELECT 1 FROM staff_users WHERE username = $1', [username]);
   if (exists) throw new HttpError(409, 'Já existe um usuário com esse nome');
-  await db.query(
-    'INSERT INTO staff_users (username, password_hash, display_name, role) VALUES ($1, $2, $3, $4)',
-    [username, hashPassword(body.password), displayName, body.role]
-  );
+  try {
+    await db.query(
+      'INSERT INTO staff_users (username, password_hash, display_name, role) VALUES ($1, $2, $3, $4)',
+      [username, hashPassword(body.password), displayName, body.role]
+    );
+  } catch {
+    // dois cadastros iguais ao mesmo tempo: o banco recusa o segundo
+    throw new HttpError(409, 'Já existe um usuário com esse nome');
+  }
   return username;
 }
 
@@ -57,9 +85,10 @@ export async function updateStaff(db, username, body, actor) {
   if (username === actor && !active) throw new HttpError(409, 'Você não pode desativar o próprio usuário');
 
   let passwordHash = current.password_hash;
-  let bump = role !== current.role || active !== current.active;
+  // mudar papel, desativar, trocar a senha ou pedir "encerrar sessões" derruba os logins abertos
+  let bump = role !== current.role || active !== current.active || body?.revokeSessions === true;
   if (body?.password) {
-    checkPassword(body.password);
+    checkPassword(body.password, username);
     passwordHash = hashPassword(body.password);
     bump = true;
   }

@@ -15,7 +15,10 @@ export function orderTicketHtml(order, { storeName = 'Universal Prensados', pape
       ${item.notes ? `<div class="obs">OBS: ${esc(item.notes)}</div>` : ''}
     </div>`).join('');
 
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+  // CSP sem scripts: mesmo se algum texto escapasse do esc(), nada executaria na janela de impressão
+  return `<!doctype html><html><head><meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <style>
     @page { margin: 0; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 3mm 3mm 6mm; width: ${paperWidth}mm; font: 12px/1.35 'Consolas', 'Courier New', monospace; color: #000; }

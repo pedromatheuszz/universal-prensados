@@ -18,17 +18,23 @@ export function json(data, status = 200, headers = {}) {
   });
 }
 
+/** Lê o corpo como um objeto JSON (nunca lista, texto solto ou null) de até 32 KB. */
 export async function readJson(req) {
   if (!(req.headers.get('content-type') || '').includes('application/json')) {
     throw new HttpError(415, 'Envie os dados como JSON');
   }
+  // recusa pelo tamanho declarado antes de ler, e confere de novo o que chegou de fato
+  if (Number(req.headers.get('content-length')) > MAX_BODY_BYTES) throw new HttpError(413, 'Pedido grande demais');
   const text = await req.text();
-  if (text.length > MAX_BODY_BYTES) throw new HttpError(413, 'Pedido grande demais');
+  if (Buffer.byteLength(text) > MAX_BODY_BYTES) throw new HttpError(413, 'Pedido grande demais');
+  let data;
   try {
-    return JSON.parse(text);
+    data = JSON.parse(text);
   } catch {
     throw new HttpError(400, 'JSON inválido');
   }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw new HttpError(400, 'Formato de dados inválido');
+  return data;
 }
 
 export function clientIpHash(req, context) {

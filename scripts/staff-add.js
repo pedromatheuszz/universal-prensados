@@ -8,6 +8,7 @@ import readline from 'readline';
 import { loadEnv } from 'vite';
 import { getDb } from '../server/db.js';
 import { hashPassword, ROLES } from '../server/auth.js';
+import { passwordProblem } from '../server/staff.js';
 
 Object.assign(process.env, { ...loadEnv('production', process.cwd(), ''), ...process.env });
 
@@ -77,8 +78,9 @@ if (!password) {
     process.exit(1);
   }
 }
-if (password.length < 10) {
-  console.error('✗ A senha precisa ter pelo menos 10 caracteres.');
+const problem = passwordProblem(password, username);
+if (problem) {
+  console.error(`✗ ${problem}`);
   process.exit(1);
 }
 

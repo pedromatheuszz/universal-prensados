@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 export const DEFAULTS = {
-  serverUrl: 'https://universalprensados.com.br',
+  serverUrl: 'https://universal-prensados.vercel.app', // trocar em Ajustes quando o domínio próprio for ligado
   printerName: '',     // vazio = impressora padrão do Windows
   autoPrint: false,    // imprime a comanda sozinho quando chega pedido novo
   paperWidth: 80,      // 80 ou 58 mm (impressora térmica)

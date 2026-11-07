@@ -44,7 +44,7 @@ Tudo o que é alterado no app vale **na hora** no site: preço, esgotado, pausa,
    ```
    Os outros usuários são criados pelo próprio app, na tela **Equipe**.
 5. **Publicar o site:** veja [Publicar na Vercel](#publicar-na-vercel).
-6. **Instalar o app:** gere o instalador com `npm run app:dist` (sai em `app/dist/`) e rode-o no computador da lanchonete. Na tela de login, confira o servidor (padrão `https://universalprensados.com.br`).
+6. **Instalar o app:** gere o instalador com `npm run app:dist` (sai em `app/dist/`) e rode-o no computador da lanchonete. Na tela de login, confira o servidor (padrão `https://universal-prensados.vercel.app`; troque em Ajustes quando o domínio próprio for ligado).
 
 ## Publicar na Vercel
 
@@ -60,7 +60,9 @@ Cada `git push` na `main` publica uma nova versão automaticamente.
 
 Como funciona: a Vercel não usa as rotas de cada arquivo de `netlify/functions/`. O `vercel.json` manda todo `/api/*` para uma função só, `api/router.js`, que escolhe a função certa pela tabela de `server/routes.js`. As funções são as mesmas nas duas hospedagens. **Ao criar uma função nova em `netlify/functions/`, inclua-a também em `server/routes.js`.**
 
-O `/admin` (Decap CMS) depende do Netlify Identity e **não funciona na Vercel**. Na Vercel, os textos do site são editados direto no repositório.
+Os textos fixos do site (endereço, depoimentos) são editados direto no repositório; cardápio, preços e loja ficam no app.
+
+**Banco ao atualizar o código:** quando uma versão nova muda o `db/schema.sql`, rode `npm run db:migrate` antes do deploy. As mudanças só acrescentam colunas e tabelas, então a versão que está no ar continua funcionando.
 
 ## Instalar e atualizar o app
 
@@ -102,15 +104,42 @@ Na primeira instalação, o npm pode pedir autorização para os scripts de inst
 
 ## Segurança
 
+**API e banco**
 - Preços, taxas, cupons, esgotado e horário são conferidos no servidor a partir do banco. O total enviado pelo navegador é ignorado.
-- Senhas guardadas com scrypt. O app recebe um token assinado com `SESSION_SECRET` (vale 14 horas e é renovado a cada 30 minutos enquanto o app está aberto), guardado criptografado pelo Windows quando "Manter conectado" está marcado.
-- O login responde igual para usuário inexistente e senha errada, inclusive no tempo de resposta, para não revelar quais usuários existem.
-- A lista de cupons não é pública: o site confere só o código digitado (`/api/coupons/:código`).
-- O registro de alterações guarda só campos conhecidos (nunca senhas).
-- O app desktop roda isolado (sem Node na interface, `sandbox`, CSP própria), só fala com `/api/admin/*` do servidor configurado, só abre links do WhatsApp e do próprio site, e o instalador vem com os *fuses* do Electron travados (sem modo Node e só carrega o código empacotado).
-- O CSV exportado no Histórico neutraliza fórmulas digitadas por clientes (proteção contra *CSV injection* no Excel).
-- A cada requisição a API confere se o usuário continua ativo e com o mesmo papel. Desativar alguém ou trocar a senha derruba a sessão na hora.
-- Cada papel só acessa o que precisa (ver tabela acima). As permissões são checadas no servidor, não só escondidas na tela.
-- Bloqueio após 10 logins errados em 15 minutos e após 8 pedidos do mesmo IP em 10 minutos.
+- Toda consulta ao banco é parametrizada (sem SQL montado com texto do usuário). A API só aceita JSON de até 32 KB, e um corpo que não seja um objeto é recusado.
+- Textos digitados pelo cliente (nome, endereço, observações) chegam limpos: sem caracteres de controle nem as marcas de direção do Unicode que disfarçam o que aparece na tela, na comanda e no WhatsApp.
+- O mesmo checkout reenviado (rede lenta, clique duplo) devolve o pedido já criado, sem duplicar no app. O site tenta de novo sozinho uma vez antes de cair no modo só WhatsApp.
+- A lista de cupons não é pública: o site confere só o código digitado (`/api/coupons/:código`). Vinte códigos errados seguidos do mesmo IP bloqueiam por 10 minutos.
+- As rotas da equipe pedem login antes de qualquer consulta, então quem não está logado não descobre quais cupons ou produtos existem.
+- Limites de tentativas: 10 logins errados por IP ou 20 contra o mesmo usuário (de qualquer lugar) em 15 minutos; 8 pedidos do mesmo IP em 10 minutos. IPs e usuários ficam guardados só como hash.
 - O link de acompanhamento usa um token aleatório e não mostra telefone nem endereço.
-- O `/admin` (Decap CMS) agora só edita textos do site (endereço, depoimentos, banners). Cardápio e preços ficam no app.
+- O registro de alterações guarda só campos conhecidos (nunca senhas), com textos e listas cortados, e registra cada login.
+
+**Equipe e senhas**
+- Senhas guardadas com scrypt no custo recomendado pela OWASP (N = 2^17). Senhas antigas são refeitas no próximo login, sem derrubar a sessão.
+- Senhas com menos de 10 caracteres, sequências ("1234567890", "abcdefghij"), repetições, o nome da loja ou o nome do usuário são recusadas.
+- O login responde igual para usuário inexistente e senha errada, inclusive no tempo de resposta, para não revelar quais usuários existem.
+- O app recebe um token assinado com `SESSION_SECRET` (vale 14 horas e é renovado a cada 30 minutos enquanto o app está aberto), guardado criptografado pelo Windows quando "Manter conectado" está marcado.
+- A cada requisição a API confere se o usuário continua ativo e com o mesmo papel. Desativar alguém, trocar a senha ou usar **Equipe › editar › Encerrar sessões** derruba os logins abertos na hora (computador perdido, senha vazada, funcionário que saiu).
+- Cada papel só acessa o que precisa (ver tabela acima). As permissões são checadas no servidor, não só escondidas na tela.
+
+**Site**
+- Cabeçalhos em todas as páginas (inclusive `/pedido/`): CSP sem scripts de fora nem inline, `frame-ancestors 'none'` e `X-Frame-Options` (o site não pode ser embutido em outro), HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP e CORP. A API ainda leva `noindex`.
+- A aba do WhatsApp é aberta sem `opener`, então a página aberta não mexe na aba do site.
+- O build não publica source maps (`.map`), e o service worker nunca guarda respostas da API.
+- O painel `/admin` (Decap CMS) e os arquivos `/data` foram removidos: dependiam do Netlify, carregavam scripts de terceiros e nada no site os usava. Cardápio, preços e loja ficam no app.
+
+**App de gestão**
+- Roda isolado: sem Node na interface, `sandbox`, `contextIsolation` e CSP própria.
+- O processo principal só atende chamadas vindas da própria interface (`app://gestao`). Ajustes, notificações e impressão conferem o que recebem.
+- Nenhuma janela do app navega para fora, abre outra janela ou embute `<webview>`. Pedidos de câmera, microfone, localização e afins são negados.
+- Só fala com `/api/admin/*` do servidor configurado (https), sem seguir redirecionamentos, e só abre links do WhatsApp e do próprio site no navegador.
+- A comanda impressa tem CSP sem scripts, além do texto escapado.
+- No instalador, as ferramentas de desenvolvedor ficam desligadas e os *fuses* do Electron travados (sem modo Node e só carrega o código empacotado).
+- O CSV exportado no Histórico neutraliza fórmulas digitadas por clientes (proteção contra *CSV injection* no Excel).
+- O quadro faz uma atualização por vez, então o mesmo pedido nunca toca o aviso nem imprime a comanda duas vezes.
+
+**Boas práticas na loja**
+- Cada pessoa com o próprio usuário e senha, sem compartilhar o login do dono.
+- Quando alguém sair da equipe: desative o usuário. Se um computador sumir: **Encerrar sessões**.
+- Instale sempre a versão nova do app quando houver (os instaladores ficam em `app/dist/`).
